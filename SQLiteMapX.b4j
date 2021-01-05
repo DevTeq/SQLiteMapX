@@ -1,0 +1,231 @@
+﻿AppType=JavaFX
+Build1=Default,b4j.example
+File1=clvColumns.bjl
+File2=nouns.txt
+File3=Project.bjl
+FileGroup1=Default Group
+FileGroup2=Default Group
+FileGroup3=Default Group
+Group=Default Group
+Library1=jcore
+Library2=jfx
+Library3=jxui
+Library4=jsql
+Library5=xcustomlistview
+Library6=javaobject
+Library7=json
+Library8=threading
+Module1=B4XCodeBlock
+Module10=FormExtension
+Module11=ORMProject
+Module12=Parser
+Module13=Table
+Module2=B4XCodeGenerator
+Module3=B4XFile
+Module4=B4XForEach
+Module5=B4XIfStatement
+Module6=B4XSelect
+Module7=B4XSub
+Module8=B4XWhileLoop
+Module9=Column
+NumberOfFiles=3
+NumberOfLibraries=8
+NumberOfModules=13
+Version=8.8
+@EndOfDesignText@
+#Region Project Attributes 
+	#MainFormWidth: 600
+	#MainFormHeight: 600 
+	#AdditionalJar: sqlite-jdbc-3.32.3.2
+#End Region
+
+Sub Process_Globals
+	Private fx As JFX
+	Private MainForm As Form
+	Private xui As XUI 
+	Private cmbTables As ComboBox
+	Private CurrentProject As ORMProject
+	Private lstColumns As CustomListView
+	Private CurrentTable As Table
+	Private lblColumnName As B4XView
+	Private lblDatabaseColumnType As B4XView
+	Private cmbB4XType As ComboBox
+	Private chkIsMandatory As B4XView
+	Private mSaveProjectPath As String
+	Private txtModelname As B4XView
+	Private txtManagerName As B4XView
+	Private chkGenerated As B4XView
+	Private txtDefaultValue As B4XView
+End Sub
+
+Sub AppStart (Form1 As Form, Args() As String)
+	MainForm = Form1
+	MainForm.RootPane.LoadLayout("Project")
+	MainForm.Show
+	FormExtension.FullScreen(MainForm)
+End Sub
+
+'Opens a project from a file.
+'Pass the SQLite file and True if you want to create a new project
+Sub OpenDatabase(FilePath As String)
+		mSaveProjectPath = File.GetFileParent(FilePath)
+		CurrentProject.Initialize
+		CurrentProject.LoadProjectSQLite(FilePath)
+		MainForm.Title = "Working with database: " & CurrentProject.DatabasePath
+		UpdateTableCombobox
+		cmbTables.SelectedIndex = 0
+		CurrentTable = CurrentProject.GetTable(cmbTables.Value)
+End Sub
+
+Sub UpdateTableCombobox
+	For Each t As Table In CurrentProject.Tables
+		cmbTables.Items.Add(t.Name)
+	Next
+End Sub
+
+Sub UpdateColumnList
+	lstColumns.Clear
+	For Each c As Column In CurrentTable.Columns
+		lstColumns.Add(CreateListItem(c), c.Name)
+	Next
+End Sub
+
+Sub CreateListItem(c As Column) As B4XView
+	Dim p As B4XView = xui.CreatePanel("")
+	p.SetLayoutAnimated(0, 0, 0, lstColumns.AsView.Width, 50)
+	p.LoadLayout("clvColumns")
+	lblColumnName.Text = c.Name
+	lblDatabaseColumnType.Text = c.DatabaseType
+	cmbB4XType.Items.AddAll(CurrentProject.ListB4XTypes)
+	cmbB4XType.SelectedIndex = 0
+	chkIsMandatory.Checked = c.IsMandatory
+	chkGenerated.Checked = c.IsGenerated
+	
+	Return p
+End Sub
+
+Sub chkIsMandatory_CheckedChange(Checked As Boolean)
+	Dim index As Int = lstColumns.GetItemFromView(Sender)
+	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	c.IsMandatory = Checked
+	
+	If Checked = False Then
+		Dim chkUniqueSibling As B4XView = lstColumns.GetPanel(index).GetView(4)
+		chkUniqueSibling.Checked = False
+	End If
+End Sub
+
+Sub chkUnique_CheckedChange(Checked As Boolean)
+	Dim index As Int = lstColumns.GetItemFromView(Sender)
+	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	c.Unique = Checked
+	
+	If Checked Then
+		Dim chkIsMandatorySibling As B4XView = lstColumns.GetPanel(index).GetView(3)
+		chkIsMandatorySibling.Checked = True
+	End If
+End Sub
+
+Sub cmbB4XType_ValueChanged (Value As Object)
+	If lstColumns.IsInitialized Then
+		Dim index As Int = lstColumns.GetItemFromView(Sender)
+		Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+		c.B4XType = Value
+	End If
+End Sub
+
+Private Sub chkGenerated_CheckedChange(Checked As Boolean)
+	Dim index As Int = lstColumns.GetItemFromView(Sender)
+	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	c.IsGenerated = Checked
+	Dim TxtDefaultValueSibling As TextField = lstColumns.GetPanel(index).GetView(6)
+	If Checked Then
+		TxtDefaultValueSibling.PromptText = "Generate value"
+	Else
+		TxtDefaultValueSibling.PromptText = "Default value"
+	End If
+End Sub
+
+Private Sub txtDefaultValue_TextChanged (Old As String, New As String)
+	Dim index As Int = lstColumns.GetItemFromView(Sender)
+	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	c.DefaultValue = New
+End Sub
+
+Sub menuMain_Action
+	Dim mi As MenuItem = Sender
+	Select mi.Text
+		Case "Open database"
+			Dim DatabasePath As String = GetDatabasePath
+			If DatabasePath <> "" Then
+				OpenDatabase(DatabasePath)
+			End If
+		Case "Save project"
+			MenuSave
+		Case "Save project as..."
+			MenuSaveAs
+		Case "Export"
+			ExportProject
+		Case "Close"
+			ExitApplication
+	End Select
+End Sub
+
+Sub MenuSaveAs
+	Dim fc As FileChooser
+	fc.Initialize
+	fc.Title = "Choose a save location"
+	fc.SetExtensionFilter("b4orm File", Array As String("*.b4orm"))
+	If mSaveProjectPath <> "" Then
+		fc.InitialDirectory = File.GetFileParent(mSaveProjectPath)
+	End If
+	Dim SavePath As String = fc.ShowSave(MainForm)
+	If SavePath <> "" Then
+		File.WriteString(File.GetFileParent(SavePath), File.GetName(SavePath), CurrentProject.ToJson.ToString)
+		mSaveProjectPath = SavePath
+	End If
+End Sub
+
+Sub MenuSave
+	If mSaveProjectPath <> "" Then
+		File.WriteString(File.GetFileParent(mSaveProjectPath), File.GetName(mSaveProjectPath), CurrentProject.ToJson.ToString)
+	Else
+		MenuSaveAs
+	End If
+End Sub
+
+Sub GetDatabasePath() As String
+	Dim fc As FileChooser
+	fc.Initialize
+	fc.SetExtensionFilter("SQLite Database File", Array As String("*.db", " *.sqlite", " *.sqlite3", " *.db3"))
+	fc.Title = "Choose a database file"
+	Return fc.ShowOpen(MainForm)
+End Sub
+
+Sub ExportProject
+	If mSaveProjectPath <> "" Then
+		Dim FileMap As Map = B4XCodeGenerator.GenerateB4XCode(CurrentProject)
+		For Each ModelFile As B4XFile In FileMap.Values
+			File.WriteString(mSaveProjectPath, ModelFile.Name & ".bas", ModelFile.ToString)
+		Next
+		File.WriteString(mSaveProjectPath, CurrentProject.Name & ".b4j", B4XCodeGenerator.GenerateB4XProjectFile(CurrentProject)) 
+	Else
+		xui.MsgboxAsync("Please save your project first before exporting.", "Please save first...")	
+	End If
+End Sub
+
+Sub txtModelname_TextChanged (Old As String, New As String)
+	CurrentTable.Modelname = New
+End Sub
+
+Sub cmbTables_ValueChanged (Value As Object)
+	CurrentTable = CurrentProject.GetTable(Value)
+	txtModelname.Text = CurrentTable.Modelname
+	txtManagerName.Text = CurrentTable.Managername
+	UpdateColumnList
+	
+End Sub
+
+Sub txtManagerName_TextChanged (Old As String, New As String)
+	CurrentTable.Managername = New
+End Sub
