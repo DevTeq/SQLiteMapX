@@ -361,9 +361,15 @@ Private Sub GenerateB4XManagerFromTable(T As Table) As B4XFile
 	ManagerFile.AddB4XSub(GenerateB4XManagerAddSub(T))
 	
 	For Each C As Column In T.Columns
+		Dim AlreadyCreatedDeleteSub As Boolean
 		If C.Unique Then
 			ManagerFile.AddB4XSub(GenerateB4XManagerIsUniqueColumnAvailable(T.Name, C.Name))
 			ManagerFile.AddB4XSub(GenerateB4XManagerGetByUniqueColumn(T.Name, T.Modelname, C))
+			If AlreadyCreatedDeleteSub = False Then
+				ManagerFile.AddB4XSub(GenerateB4XManagerDelete(T, C.Name))
+				AlreadyCreatedDeleteSub = True
+			End If
+			
 		End If
 	Next
 	
@@ -447,8 +453,6 @@ Private Sub GenerateB4XManagerDelete(T As Table, UniqueColumnName As String) As 
 	Return Delete
 End Sub
 #End Region
-
-
 
 
 Private Sub GenerateVariable(Name As String, AccessModifier As String, VarType As String) As String
