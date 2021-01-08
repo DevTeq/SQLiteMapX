@@ -437,12 +437,12 @@ Private Sub GenerateB4XManagerGetByUniqueColumn(TableName As String, ModelName A
 	Return GetByUniqueColumn
 End Sub
 
-Private Sub GenerateB4XManagerDelete(T As Table, ColumnName As String) As B4XSub
+Private Sub GenerateB4XManagerDelete(T As Table, UniqueColumnName As String) As B4XSub
 	Dim Delete As B4XSub
 	Delete.Initialize("Public", "Delete")
 	Delete.AddParameter(T.Modelname & "Object As " & T.Modelname)
 	
-	Delete.AddCodeLine($"dbCore.DeleteObject("${T.Name}", "${ColumnName}", ${T.Modelname}Object.${ColumnName})"$)
+	Delete.AddCodeLine($"dbCore.DeleteObject("${T.Name}", "${UniqueColumnName}", ${T.Modelname}Object.${UniqueColumnName})"$)
 	
 	Return Delete
 End Sub
