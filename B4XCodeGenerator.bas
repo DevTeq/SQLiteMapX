@@ -340,7 +340,7 @@ End Sub
 
 Private Sub GenerateDBCoreDeleteObject As B4XSub
 	Dim DeleteSub As B4XSub
-	DeleteSub.Initialize("Private", "DeleteObject")
+	DeleteSub.Initialize("Public", "DeleteObject")
 	DeleteSub.AddParameters(Array As String("Tablename As String", "ColumnName As String", "Value As Object"))
 	
 	DeleteSub.AddCodeLine($"db.ExecNonQuery2("DELETE FROM " & Tablename & " WHERE " & ColumnName &  " = ?", Array As Object(Value))"$)
