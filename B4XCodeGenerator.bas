@@ -145,6 +145,7 @@ Private Sub GenerateDBCore(Tables As List) As B4XFile
 	DBCore.AddB4XSub(GenerateDBCoreListAllObjects)
 	DBCore.AddB4XSub(GenerateDBCoreConvertMapValuesToList)
 	DBCore.AddB4XSub(GenerateDBCoreDeleteObject)
+	DBCore.AddB4XSub(GenerateDBCoreUpdateObject)
 	
 	Return DBCore
 End Sub
@@ -346,6 +347,26 @@ Private Sub GenerateDBCoreDeleteObject As B4XSub
 	DeleteSub.AddCodeLine($"db.ExecNonQuery2("DELETE FROM " & Tablename & " WHERE " & ColumnName &  " = ?", Array As Object(Value))"$)
 	
 	Return DeleteSub
+End Sub
+
+Private Sub GenerateDBCoreUpdateObject As B4XSub
+	Dim UpdateObject As B4XSub
+	UpdateObject.Initialize("Public", "UpdateObject")
+	UpdateObject.AddParameters(Array As String("Tablename As String", "UniqueColumn As String", "UniqueValue As String", "ColumnNames As List", "Values As List"))
+	UpdateObject.AddCodeLine($"Dim Query As String = "UPDATE " & UniqueColumn & " SET ""$)
+	
+	Dim LoopCode As B4XCodeBlock
+	LoopCode.Initialize($"Query = Query & Value & " = ?, ""$)
+	Dim ColumnLooper As B4XForEach
+	ColumnLooper.Initialize("String", "ColumnNames", LoopCode)
+	UpdateObject.AddCodeBlock(ColumnLooper.ToCodeBlock)
+	
+	UpdateObject.AddCodeLine($"Query = Query.SubString2(0, Query.Length - 2)"$)
+	UpdateObject.AddCodeLine($"Query = Query & " WHERE " & UniqueColumn & " = ?""$)
+	UpdateObject.AddCodeLine("Values.Add(UniqueValue)")
+	UpdateObject.AddCodeLine("db.ExecNonQuery2(Query, Values)")
+	
+	Return UpdateObject
 End Sub
 #End Region
 
