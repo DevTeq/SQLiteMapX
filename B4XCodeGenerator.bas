@@ -98,7 +98,12 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	DBColumnMap.AddCodeLine(GenerateVariable("ColumnMap", "Dim", "Map"))
 	DBColumnMap.AddCodeLine("ColumnMap.Initialize")
 	
+	Dim UniqueImmutableColumnName As String
+	Dim AllColumns As String
+	Dim AllColumnValues As String
 	For Each c As Column In T.Columns
+		AllColumns = AllColumns & c.Name & ", "
+		AllColumnValues = AllColumnValues & "m" & c.Name & ", "
 		PGlobals.AddCodeLine(GenerateVariable("m" & c.Name, "Private", c.B4XType))
 		DBColumnMap.AddCodeLine("ColumnMap.Put(" & Chr(34) & c.Name & Chr(34) & ", m" & c.Name & ")")
 		
@@ -108,17 +113,29 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		getColumn.AddCodeLine("Return m" & c.Name)
 		TableModel.AddB4XSub(getColumn)
 		
-		If c.IsGenerated = False Then
+		If c.IsGenerated = False Or c.IsImmutable Then
 			Dim setColumn As B4XSub
 			setColumn.Initialize("Public", "set" & c.Name)
 			setColumn.AddParameter(c.Name & " As " & c.B4XType)
 			setColumn.AddCodeLine("m" & c.Name & " = " & c.Name)
 			TableModel.AddB4XSub(setColumn)
 		End If
+		
+		If c.Unique And c.IsImmutable Then
+			UniqueImmutableColumnName = c.Name
+		End If
 	
 		init.AddCodeLine("m" & c.Name & " = " & c.Name)
 		init.AddParameter(c.Name & " As " & c.B4XType)		
 	Next
+	
+	AllColumns = AllColumns.SubString2(0, AllColumns.Length - 2)
+	AllColumnValues = AllColumnValues.SubString2(0, AllColumnValues.Length - 2)
+	
+	Dim Save As B4XSub
+	Save.Initialize("Public", "Save")
+	Save.AddCodeLine($"dbCore.UpdateObject("${T.Name}", "${UniqueImmutableColumnName}", m${UniqueImmutableColumnName})", Array As String(${AllColumns}), Array As Object(${AllColumnValues})"$)
+	TableModel.AddB4XSub(Save)
 	
 	DBColumnMap.AddCodeLine("Return ColumnMap")
 	TableModel.AddB4XSub(DBColumnMap)
@@ -386,10 +403,13 @@ Private Sub GenerateB4XManagerFromTable(T As Table) As B4XFile
 		If C.Unique Then
 			ManagerFile.AddB4XSub(GenerateB4XManagerIsUniqueColumnAvailable(T.Name, C.Name))
 			ManagerFile.AddB4XSub(GenerateB4XManagerGetByUniqueColumn(T.Name, T.Modelname, C))
-			If AlreadyCreatedDeleteSub = False Then
-				ManagerFile.AddB4XSub(GenerateB4XManagerDelete(T, C.Name))
-				AlreadyCreatedDeleteSub = True
+			If C.IsImmutable Then
+				If AlreadyCreatedDeleteSub = False Then
+					ManagerFile.AddB4XSub(GenerateB4XManagerDelete(T, C.Name))
+					AlreadyCreatedDeleteSub = True
+				End If
 			End If
+			
 			
 		End If
 	Next
@@ -464,12 +484,12 @@ Private Sub GenerateB4XManagerGetByUniqueColumn(TableName As String, ModelName A
 	Return GetByUniqueColumn
 End Sub
 
-Private Sub GenerateB4XManagerDelete(T As Table, UniqueColumnName As String) As B4XSub
+Private Sub GenerateB4XManagerDelete(T As Table, UniqueImmutableColumnName As String) As B4XSub
 	Dim Delete As B4XSub
 	Delete.Initialize("Public", "Delete")
 	Delete.AddParameter(T.Modelname & "Object As " & T.Modelname)
 	
-	Delete.AddCodeLine($"dbCore.DeleteObject("${T.Name}", "${UniqueColumnName}", ${T.Modelname}Object.${UniqueColumnName})"$)
+	Delete.AddCodeLine($"dbCore.DeleteObject("${T.Name}", "${UniqueImmutableColumnName}", ${T.Modelname}Object.${UniqueImmutableColumnName})"$)
 	
 	Return Delete
 End Sub
