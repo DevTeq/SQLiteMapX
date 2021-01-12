@@ -74,7 +74,7 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & TableName & "')")
 	Do While rs.NextRow
 		Dim c As Column
-		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")),Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "")
+		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")),Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
 		ColumnList.Add(c)
 	Loop
 	

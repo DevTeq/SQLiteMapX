@@ -229,3 +229,9 @@ End Sub
 Sub txtManagerName_TextChanged (Old As String, New As String)
 	CurrentTable.Managername = New
 End Sub
+
+Private Sub chkImmutable_CheckedChange(Checked As Boolean)
+	Dim index As Int = lstColumns.GetItemFromView(Sender)
+	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	c.IsImmutable = Checked
+End Sub

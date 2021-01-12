@@ -12,10 +12,11 @@ Sub Class_Globals
 	Private mUnique As Boolean
 	Private mISGenerated As Boolean
 	Private mDefaultValue As String
+	Private mIsImmutable As Boolean
 End Sub
 
 'Initializes the object. You can add parameters to this method if needed.
-Public Sub Initialize(Name As String, DatabaseType As String, B4XType As String, IsMandatory As Boolean, Unique As Boolean, IsGenerated As Boolean, DefaultValue As String)
+Public Sub Initialize(Name As String, DatabaseType As String, B4XType As String, IsMandatory As Boolean, Unique As Boolean, IsGenerated As Boolean, DefaultValue As String, IsImmutable As Boolean)
 	mName = Name
 	mDatabaseType = DatabaseType
 	mB4XType = B4XType
@@ -23,6 +24,7 @@ Public Sub Initialize(Name As String, DatabaseType As String, B4XType As String,
 	mUnique = Unique
 	mISGenerated = IsGenerated
 	mDefaultValue = DefaultValue
+	mIsImmutable = IsImmutable
 End Sub
 
 Public Sub getName() As String
@@ -73,6 +75,14 @@ Public Sub getDefaultValue() As String
 	Return mDefaultValue
 End Sub
 
+Public Sub setIsImmutable(value As Boolean)
+	mIsImmutable = value
+End Sub
+
+Public Sub getIsImmutable As Boolean
+	Return mIsImmutable
+End Sub
+
 Public Sub ToMap() As Map
-	Return CreateMap("name":mName, "databasetype":mDatabaseType, "b4xtype":mB4XType, "ismandatory":mIsMandatory, "unique":mUnique, "isgenerated":mIsGenerated, "defaultvalue":mDefaultValue)
+	Return CreateMap("name":mName, "databasetype":mDatabaseType, "b4xtype":mB4XType, "ismandatory":mIsMandatory, "unique":mUnique, "isgenerated":mISGenerated, "defaultvalue":mDefaultValue)
 End Sub
