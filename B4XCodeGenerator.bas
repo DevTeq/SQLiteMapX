@@ -102,7 +102,7 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	Dim AllColumns As String
 	Dim AllColumnValues As String
 	For Each c As Column In T.Columns
-		AllColumns = AllColumns & c.Name & ", "
+		AllColumns = AllColumns & Chr(34) & c.Name & Chr(34) & ", "
 		AllColumnValues = AllColumnValues & "m" & c.Name & ", "
 		PGlobals.AddCodeLine(GenerateVariable("m" & c.Name, "Private", c.B4XType))
 		DBColumnMap.AddCodeLine("ColumnMap.Put(" & Chr(34) & c.Name & Chr(34) & ", m" & c.Name & ")")
@@ -134,7 +134,7 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	
 	Dim Save As B4XSub
 	Save.Initialize("Public", "Save")
-	Save.AddCodeLine($"dbCore.UpdateObject("${T.Name}", "${UniqueImmutableColumnName}", m${UniqueImmutableColumnName})", Array As String(${AllColumns}), Array As Object(${AllColumnValues})"$)
+	Save.AddCodeLine($"dbCore.UpdateObject("${T.Name}", "${UniqueImmutableColumnName}", m${UniqueImmutableColumnName}, Array As String(${AllColumns}), Array As Object(${AllColumnValues}))"$)
 	TableModel.AddB4XSub(Save)
 	
 	DBColumnMap.AddCodeLine("Return ColumnMap")
@@ -424,9 +424,13 @@ Private Sub GenerateB4XManagerAddSub(T As Table) As B4XSub
 	AddSub.Initialize("Public", "Add" & T.Modelname)
 	Dim InitStringParameters As String
 	For Each C As Column In T.Columns
-		If C.IsMandatory And C.IsGenerated = False Then
-			AddSub.AddParameter(C.Name & " As " & C.B4XType)
-			InitStringParameters = InitStringParameters & C.Name & ", "
+		If C.IsMandatory Then
+			If C.IsGenerated Then
+				InitStringParameters = InitStringParameters & C.DefaultValue & ", "
+			Else
+				AddSub.AddParameter(C.Name & " As " & C.B4XType)
+				InitStringParameters = InitStringParameters & C.Name & ", "
+			End If			
 		Else
 			If C.B4XType = "string" Then
 				InitStringParameters = InitStringParameters & Chr(34) & C.DefaultValue & Chr(34) & ", "
