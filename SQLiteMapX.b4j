@@ -72,6 +72,8 @@ Sub OpenDatabase(FilePath As String)
 		CurrentProject.Initialize
 		CurrentProject.LoadProjectSQLite(FilePath)
 		MainForm.Title = "Working with database: " & CurrentProject.DatabasePath
+		txtModelname.Enabled = True
+		txtManagerName.Enabled = True
 		UpdateTableCombobox
 		cmbTables.SelectedIndex = 0
 		CurrentTable = CurrentProject.GetTable(cmbTables.Value)
