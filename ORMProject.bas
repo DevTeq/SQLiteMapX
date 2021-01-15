@@ -74,7 +74,7 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & TableName & "')")
 	Do While rs.NextRow
 		Dim c As Column
-		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")),Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
+		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")), "", "",Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
 		ColumnList.Add(c)
 	Loop
 	
@@ -111,12 +111,12 @@ Public Sub ToJson() As JSONGenerator
 End Sub
 
 public Sub ListB4XTypes As List
-	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean")
+	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean", "Reference")
 	Return b4xtypelist
 End Sub
 
 Public Sub GetB4XTypesIndex(B4XType As String) As Int
-	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean")
+	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean", "Reference")
 	Return b4xtypelist.IndexOf(B4XType)
 End Sub
 #End Region
