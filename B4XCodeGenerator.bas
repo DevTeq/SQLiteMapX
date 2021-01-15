@@ -113,6 +113,13 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		getColumn.AddCodeLine("Return m" & c.Name)
 		TableModel.AddB4XSub(getColumn)
 		
+		If c.IsGenerated And c.IsImmutable = False Then
+			Dim TriggerColumn As B4XSub
+			TriggerColumn.Initialize("Public", "Trigger" & c.Name)
+			TriggerColumn.AddCodeLine("m" & c.Name & " = " & c.DefaultValue)
+			TableModel.AddB4XSub(TriggerColumn)
+		End If
+		
 		If c.IsGenerated = False Or c.IsImmutable Then
 			Dim setColumn As B4XSub
 			setColumn.Initialize("Public", "set" & c.Name)
@@ -380,8 +387,11 @@ Private Sub GenerateDBCoreUpdateObject As B4XSub
 	
 	UpdateObject.AddCodeLine($"Query = Query.SubString2(0, Query.Length - 2)"$)
 	UpdateObject.AddCodeLine($"Query = Query & " WHERE " & UniqueColumn & " = ?""$)
-	UpdateObject.AddCodeLine("Values.Add(UniqueValue)")
-	UpdateObject.AddCodeLine("db.ExecNonQuery2(Query, Values)")
+	UpdateObject.AddCodeLine("Dim newValues As List")
+	UpdateObject.AddCodeLine("newValues.Initialize")
+	UpdateObject.AddCodeLine("NewValues.AddAll(Values)")
+	UpdateObject.AddCodeLine("NewValues.Add(UniqueValue)")
+	UpdateObject.AddCodeLine("db.ExecNonQuery2(Query, NewValues)")
 	
 	Return UpdateObject
 End Sub

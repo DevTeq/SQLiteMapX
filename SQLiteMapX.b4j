@@ -7,13 +7,13 @@ FileGroup1=Default Group
 FileGroup2=Default Group
 FileGroup3=Default Group
 Group=Default Group
-Library1=jcore
-Library2=jfx
-Library3=jxui
-Library4=jsql
-Library5=xcustomlistview
-Library6=javaobject
-Library7=json
+Library1=javaobject
+Library2=jcore
+Library3=jfx
+Library4=json
+Library5=jsql
+Library6=jxui
+Library7=xcustomlistview
 Library8=threading
 Module1=B4XCodeBlock
 Module10=FormExtension
@@ -72,6 +72,8 @@ Sub OpenDatabase(FilePath As String)
 		CurrentProject.Initialize
 		CurrentProject.LoadProjectSQLite(FilePath)
 		MainForm.Title = "Working with database: " & CurrentProject.DatabasePath
+		txtModelname.Enabled = True
+		txtManagerName.Enabled = True
 		UpdateTableCombobox
 		cmbTables.SelectedIndex = 0
 		CurrentTable = CurrentProject.GetTable(cmbTables.Value)
@@ -97,7 +99,7 @@ Sub CreateListItem(c As Column) As B4XView
 	lblColumnName.Text = c.Name
 	lblDatabaseColumnType.Text = c.DatabaseType
 	cmbB4XType.Items.AddAll(CurrentProject.ListB4XTypes)
-	cmbB4XType.SelectedIndex = 0
+	cmbB4XType.SelectedIndex = CurrentProject.GetB4XTypesIndex(c.B4XType)
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
 	

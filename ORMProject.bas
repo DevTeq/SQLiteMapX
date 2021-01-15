@@ -111,9 +111,13 @@ Public Sub ToJson() As JSONGenerator
 End Sub
 
 public Sub ListB4XTypes As List
-	Dim b4xtypelist As List = Array As String("string", "int", "long", "double", "boolean")
-	b4xtypelist.Sort(False)
+	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean")
 	Return b4xtypelist
+End Sub
+
+Public Sub GetB4XTypesIndex(B4XType As String) As Int
+	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean")
+	Return b4xtypelist.IndexOf(B4XType)
 End Sub
 #End Region
 
