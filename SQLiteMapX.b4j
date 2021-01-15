@@ -99,7 +99,7 @@ Sub CreateListItem(c As Column) As B4XView
 	lblColumnName.Text = c.Name
 	lblDatabaseColumnType.Text = c.DatabaseType
 	cmbB4XType.Items.AddAll(CurrentProject.ListB4XTypes)
-	cmbB4XType.SelectedIndex = 0
+	cmbB4XType.SelectedIndex = CurrentProject.GetB4XTypesIndex(c.B4XType)
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
 	
