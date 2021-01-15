@@ -379,9 +379,11 @@ Private Sub GenerateDBCoreUpdateObject As B4XSub
 	UpdateObject.AddCodeBlock(ColumnLooper.ToCodeBlock)
 	
 	UpdateObject.AddCodeLine($"Query = Query.SubString2(0, Query.Length - 2)"$)
-	UpdateObject.AddCodeLine($"Query = Query & " WHERE " & UniqueColumn & " = ?""$)
-	UpdateObject.AddCodeLine("Values.Add(UniqueValue)")
-	UpdateObject.AddCodeLine("db.ExecNonQuery2(Query, Values)")
+	UpdateObject.AddCodeLine("Dim newValues As List")
+	UpdateObject.AddCodeLine("newValues.Initialize")
+	UpdateObject.AddCodeLine("NewValues.AddAll(Values)")
+	UpdateObject.AddCodeLine("NewValues.Add(UniqueValue)")
+	UpdateObject.AddCodeLine("db.ExecNonQuery2(Query, NewValues)")
 	
 	Return UpdateObject
 End Sub
