@@ -77,7 +77,6 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")), "", "",Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
 		ColumnList.Add(c)
 	Loop
-	
 	Return ColumnList
 End Sub
 
