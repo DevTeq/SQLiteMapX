@@ -386,6 +386,7 @@ Private Sub GenerateDBCoreUpdateObject As B4XSub
 	UpdateObject.AddCodeBlock(ColumnLooper.ToCodeBlock)
 	
 	UpdateObject.AddCodeLine($"Query = Query.SubString2(0, Query.Length - 2)"$)
+	UpdateObject.AddCodeLine($"Query = Query & " WHERE " & UniqueColumn & " = ?""$)
 	UpdateObject.AddCodeLine("Dim newValues As List")
 	UpdateObject.AddCodeLine("newValues.Initialize")
 	UpdateObject.AddCodeLine("NewValues.AddAll(Values)")
