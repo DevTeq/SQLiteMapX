@@ -145,7 +145,11 @@ Sub cmbB4XType_ValueChanged (Value As Object)
 					NonCurrentTablles.Add(T)
 				End If
 			Next
-			CreateReferenceForm.Open(NonCurrentTablles)
+			If NonCurrentTablles.Size > 0 Then
+				CreateReferenceForm.Open(NonCurrentTablles)
+			Else
+				fx.Msgbox(MainForm, "There is only 1 table in this database, so referencing with another table is impossible.", "Error")
+			End If
 		End If
 	End If
 End Sub
