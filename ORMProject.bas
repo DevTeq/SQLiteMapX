@@ -72,12 +72,27 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 	Dim ColumnList As List
 	ColumnList.Initialize
 	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & TableName & "')")
+
 	Do While rs.NextRow
+		Dim SplittedReference() As String = Regex.Split("|", GetForeignKeyReference(TableName, rs.GetString("name")))
+		Dim ReferenceTable As String = SplittedReference(0)
+		Dim ReferenceColumn As String = SplittedReference(1)
 		Dim c As Column
-		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")), "", "",Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
+		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")), ReferenceTable, ReferenceColumn,Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
 		ColumnList.Add(c)
 	Loop
 	Return ColumnList
+End Sub
+
+Private Sub GetForeignKeyReference(TableName As String, ColumnName As String) As String
+	Dim Reference As String
+	Dim rsForeignKeys As ResultSet = sql.ExecQuery("SELECT * FROM pragma_foreign_key_list('" & TableName & "');")
+	Do While rsForeignKeys.NextRow
+		If rsForeignKeys.GetString("from") = ColumnName Then
+			Reference = rsForeignKeys.GetString("table") & "|" & rsForeignKeys.GetString("to") 
+		End If
+	Loop
+	Return Reference
 End Sub
 
 Private Sub MapDatabaseTypeToB4XType(DatabaseType As String) As String
