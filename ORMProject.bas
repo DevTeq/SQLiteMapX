@@ -74,11 +74,17 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & TableName & "')")
 
 	Do While rs.NextRow
-		Dim SplittedReference() As String = Regex.Split("|", GetForeignKeyReference(TableName, rs.GetString("name")))
-		Dim ReferenceTable As String = SplittedReference(0)
-		Dim ReferenceColumn As String = SplittedReference(1)
+		Dim B4XType As String = MapDatabaseTypeToB4XType(rs.GetString("type"))
+		Dim ReferenceTable As String
+		Dim ReferenceColumn As String
+		Dim SplittedReference As List = Regex.Split("\|", GetForeignKeyReference(TableName, rs.GetString("name")))
+		If SplittedReference.Size = 2 Then
+			ReferenceTable = SplittedReference.Get(0)
+			ReferenceColumn = SplittedReference.Get(1)
+			B4XType = ReferenceTable
+		End If
 		Dim c As Column
-		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")), ReferenceTable, ReferenceColumn,Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
+		c.Initialize(rs.GetString("name"), rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn,Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
 		ColumnList.Add(c)
 	Loop
 	Return ColumnList
@@ -125,9 +131,11 @@ Public Sub ToJson() As JSONGenerator
 End Sub
 
 public Sub ListB4XTypes As List
-	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean")
+	Dim b4xtypelist As List
+	b4xtypelist.Initialize
+	b4xtypelist.AddAll(Array As String("String", "Int", "Long", "Double", "Boolean"))
 	For Each t As Table In mTableList
-		b4xtypelist.Add(t.Name)
+		b4xtypelist.Add(t.Modelname)
 	Next
 	Return b4xtypelist
 End Sub
