@@ -62,7 +62,7 @@ Private Sub MapDatabaseTablesToTables
 	Do While rs.NextRow
 		Dim t As Table
 		Dim Modelname As String = GuessSingularNoun(rs.GetString("name"))
-		t.Initialize(rs.GetString("name"), Modelname, Modelname & "Manager")
+		t.Initialize(rs.GetString("name"), Modelname & "Manager")
 		t.AddColumns(MapDatabaseColumnsToColumns(t.Name))
 		mTableList.Add(t)
 	Loop
@@ -81,7 +81,7 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 		If SplittedReference.Size = 2 Then
 			ReferenceTable = SplittedReference.Get(0)
 			ReferenceColumn = SplittedReference.Get(1)
-			B4XType = ReferenceTable
+			B4XType = "Reference"
 		End If
 		Dim c As Column
 		c.Initialize(rs.GetString("name"), rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn,Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
@@ -133,10 +133,7 @@ End Sub
 public Sub ListB4XTypes As List
 	Dim b4xtypelist As List
 	b4xtypelist.Initialize
-	b4xtypelist.AddAll(Array As String("String", "Int", "Long", "Double", "Boolean"))
-	For Each t As Table In mTableList
-		b4xtypelist.Add(t.Modelname)
-	Next
+	b4xtypelist.AddAll(Array As String("String", "Int", "Long", "Double", "Boolean", "Reference"))
 	Return b4xtypelist
 End Sub
 

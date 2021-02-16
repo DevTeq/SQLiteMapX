@@ -87,6 +87,14 @@ Public Sub getIsImmutable As Boolean
 	Return mIsImmutable
 End Sub
 
+Public Sub getReferenceTable As String
+	Return mReferenceTable
+End Sub
+
+Public Sub getReferenceColumn As String
+	Return mReferenceColumn
+End Sub
+
 Public Sub ToMap() As Map
 	Return CreateMap("name":mName, "databasetype":mDatabaseType, "b4xtype":mB4XType, "ismandatory":mIsMandatory, "unique":mUnique, "isgenerated":mISGenerated, "defaultvalue":mDefaultValue)
 End Sub

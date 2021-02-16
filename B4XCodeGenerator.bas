@@ -42,7 +42,7 @@ Public Sub GenerateB4XProjectFile(ORMP As ORMProject) As String
 	
 	Index = 1
 	For Each T As Table In ORMP.Tables
-		ProjectFileCode = ProjectFileCode & "Module" & Index & "=" & T.Modelname & CRLF
+		ProjectFileCode = ProjectFileCode & "Module" & Index & "=" & T.Name & CRLF
 		Index = Index + 1
 		ProjectFileCode = ProjectFileCode & "Module" & Index & "=" & T.Managername & CRLF
 		Index = Index + 1
@@ -81,7 +81,7 @@ End Sub
 
 Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	Dim TableModel As B4XFile
-	TableModel.Initialize(T.Modelname, True)
+	TableModel.Initialize(T.Name, True)
 	
 	Dim init As B4XSub
 	init.Initialize("Public", "Initialize")
@@ -204,14 +204,14 @@ Private Sub GenerateDBCoreParseResultToObjects(Tables As List) As B4XSub
 	SelectCodeBlocks.Initialize
 	For Each t As Table In Tables
 		Dim ConversionBlock As B4XCodeBlock
-		ConversionBlock.Initialize(GenerateVariable("new" & t.Modelname, "Dim", t.Modelname))
+		ConversionBlock.Initialize(GenerateVariable("new" & t.Name, "Dim", t.Name))
 		Dim InitString As String
 		For Each c As Column In t.Columns
 			InitString = InitString & "Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & "), "
 		Next
 		InitString = InitString.SubString2(0, InitString.Length -2)
-		ConversionBlock.AddCodeLine("new" & t.Modelname & ".Initialize(" & InitString & ")")
-		ConversionBlock.AddCodeLine("ParsedObjects.Add(new" & t.Modelname & ")")
+		ConversionBlock.AddCodeLine("new" & t.Name & ".Initialize(" & InitString & ")")
+		ConversionBlock.AddCodeLine("ParsedObjects.Add(new" & t.Name & ")")
 		SelectCodeBlocks.Add(ConversionBlock)
 	Next
 	
@@ -286,7 +286,7 @@ Private Sub GenerateDBCoreInsertObjectInDatabase(Tables As List) As B4XSub
 		Dim T As Table = Tables.Get(i)
 		VarAList(i) = "obj"
 		ConditionList(i) = "Is"
-		VarBList(i) = T.Modelname
+		VarBList(i) = T.Name
 		Dim IfCodeBlock As B4XCodeBlock
 		IfCodeBlock.Initialize("Query = Query & " & Chr(34) & T.Name & " " & Chr(34))
 		CodeList(i) = IfCodeBlock
@@ -412,7 +412,7 @@ Private Sub GenerateB4XManagerFromTable(T As Table) As B4XFile
 		Dim AlreadyCreatedDeleteSub As Boolean
 		If C.Unique Then
 			ManagerFile.AddB4XSub(GenerateB4XManagerIsUniqueColumnAvailable(T.Name, C.Name))
-			ManagerFile.AddB4XSub(GenerateB4XManagerGetByUniqueColumn(T.Name, T.Modelname, C))
+			ManagerFile.AddB4XSub(GenerateB4XManagerGetByUniqueColumn(T.Name, C))
 			If C.IsImmutable Then
 				If AlreadyCreatedDeleteSub = False Then
 					ManagerFile.AddB4XSub(GenerateB4XManagerDelete(T, C.Name))
@@ -431,7 +431,7 @@ End Sub
 
 Private Sub GenerateB4XManagerAddSub(T As Table) As B4XSub
 	Dim AddSub As B4XSub
-	AddSub.Initialize("Public", "Add" & T.Modelname)
+	AddSub.Initialize("Public", "Add" & T.Name)
 	Dim InitStringParameters As String
 	For Each C As Column In T.Columns
 		If C.IsMandatory Then
@@ -451,7 +451,7 @@ Private Sub GenerateB4XManagerAddSub(T As Table) As B4XSub
 		End If
 	Next
 	
-	AddSub.AddCodeLine(GenerateVariable("NewObject", "Dim", T.Modelname))
+	AddSub.AddCodeLine(GenerateVariable("NewObject", "Dim", T.Name))
 	AddSub.AddCodeLine("NewObject.Initialize(" & InitStringParameters.SubString2(0, InitStringParameters.Length  - 2) & ")")
 	AddSub.AddCodeLine("dbCore.InsertObjectInDatabase(NewObject)")
 	
@@ -479,20 +479,20 @@ Private Sub GenerateB4XManagerListAll(TableName As String) As B4XSub
 	Return ListAll
 End Sub
 
-Private Sub GenerateB4XManagerGetByUniqueColumn(TableName As String, ModelName As String, UniqueColumn As Column) As B4XSub
+Private Sub GenerateB4XManagerGetByUniqueColumn(TableName As String, UniqueColumn As Column) As B4XSub
 	Dim GetByUniqueColumn As B4XSub
 	GetByUniqueColumn.Initialize("Public", "GetBy" & UniqueColumn.Name)
 	GetByUniqueColumn.AddParameter(UniqueColumn.Name & " As " & UniqueColumn.B4XType)
-	GetByUniqueColumn.ReturnType = ModelName
+	GetByUniqueColumn.ReturnType = TableName
 	
-	GetByUniqueColumn.AddCodeLine(GenerateVariable("New" & ModelName, "Dim", ModelName))
-	GetByUniqueColumn.AddCodeLine("New" & ModelName & $"= dbCore.GetObjectByUniqueColumnValue("${TableName}", "${UniqueColumn.Name}", ${UniqueColumn.Name})"$)
+	GetByUniqueColumn.AddCodeLine(GenerateVariable("New" & TableName, "Dim", TableName))
+	GetByUniqueColumn.AddCodeLine("New" & TableName & $"= dbCore.GetObjectByUniqueColumnValue("${TableName}", "${UniqueColumn.Name}", ${UniqueColumn.Name})"$)
 	
 	Dim ifCodeToExecute As B4XCodeBlock
-	ifCodeToExecute.Initialize("Return New" & ModelName)
+	ifCodeToExecute.Initialize("Return New" & TableName)
 	
 	Dim ifBlock As B4XIfStatement
-	ifBlock.Initialize(Array As String("New" & ModelName & ".IsInitialized"), Array As String(""), Array As String(""), Array As B4XCodeBlock(ifCodeToExecute))
+	ifBlock.Initialize(Array As String("New" & TableName & ".IsInitialized"), Array As String(""), Array As String(""), Array As B4XCodeBlock(ifCodeToExecute))
 	GetByUniqueColumn.AddCodeBlock(ifBlock.ToCodeBlock)
 	
 	Return GetByUniqueColumn
@@ -501,9 +501,9 @@ End Sub
 Private Sub GenerateB4XManagerDelete(T As Table, UniqueImmutableColumnName As String) As B4XSub
 	Dim Delete As B4XSub
 	Delete.Initialize("Public", "Delete")
-	Delete.AddParameter(T.Modelname & "Object As " & T.Modelname)
+	Delete.AddParameter(T.Name & "Object As " & T.Name)
 	
-	Delete.AddCodeLine($"dbCore.DeleteObject("${T.Name}", "${UniqueImmutableColumnName}", ${T.Modelname}Object.${UniqueImmutableColumnName})"$)
+	Delete.AddCodeLine($"dbCore.DeleteObject("${T.Name}", "${UniqueImmutableColumnName}", ${T.Name}Object.${UniqueImmutableColumnName})"$)
 	
 	Return Delete
 End Sub

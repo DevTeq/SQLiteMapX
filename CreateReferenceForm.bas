@@ -27,7 +27,6 @@ End Sub
 
 Private Sub LoadTables(TableList As List)
 	For Each t As Table In TableList
-		Log(t.Name)
 		cmbTables.Items.Add(t.Name)
 	Next
 End Sub

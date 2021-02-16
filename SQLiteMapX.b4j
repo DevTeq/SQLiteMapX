@@ -55,7 +55,6 @@ Sub Process_Globals
 	Private cmbB4XType As ComboBox
 	Private chkIsMandatory As B4XView
 	Private mSaveProjectPath As String
-	Private txtModelname As B4XView
 	Private txtManagerName As B4XView
 	Private chkGenerated As B4XView
 	Private txtDefaultValue As B4XView
@@ -75,7 +74,6 @@ Sub OpenDatabase(FilePath As String)
 		CurrentProject.Initialize
 		CurrentProject.LoadProjectSQLite(FilePath)
 		MainForm.Title = "Working with database: " & CurrentProject.DatabasePath
-		txtModelname.Enabled = True
 		txtManagerName.Enabled = True
 		UpdateTableCombobox
 		cmbTables.SelectedIndex = 0
@@ -103,6 +101,9 @@ Sub CreateListItem(c As Column) As B4XView
 	lblDatabaseColumnType.Text = c.DatabaseType
 	cmbB4XType.Items.AddAll(CurrentProject.ListB4XTypes)
 	cmbB4XType.SelectedIndex = CurrentProject.GetB4XTypesIndex(c.B4XType)
+	If cmbB4XType.Value = "Reference" Then
+		cmbB4XType.Value = "Reference (" & c.ReferenceTable & "." & c.ReferenceColumn & ")"
+	End If
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
 	
@@ -137,16 +138,15 @@ Sub cmbB4XType_ValueChanged (Value As Object)
 		Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
 		c.B4XType = Value
 		If Value = "Reference" Then
-			Dim NonCurrentTablles As List
-			NonCurrentTablles.Initialize
+			Dim NonCurrentTables As List
+			NonCurrentTables.Initialize
 			For Each T As Table In CurrentProject.Tables
 				If T.Name <> CurrentTable.Name Then
-					Log(T.Name)
-					NonCurrentTablles.Add(T)
+					NonCurrentTables.Add(T)
 				End If
 			Next
-			If NonCurrentTablles.Size > 0 Then
-				CreateReferenceForm.Open(NonCurrentTablles)
+			If NonCurrentTables.Size > 0 Then
+				CreateReferenceForm.Open(NonCurrentTables)
 			Else
 				fx.Msgbox(MainForm, "There is only 1 table in this database, so referencing with another table is impossible.", "Error")
 			End If
@@ -234,13 +234,8 @@ Sub ExportProject
 	End If
 End Sub
 
-Sub txtModelname_TextChanged (Old As String, New As String)
-	CurrentTable.Modelname = New
-End Sub
-
 Sub cmbTables_ValueChanged (Value As Object)
 	CurrentTable = CurrentProject.GetTable(Value)
-	txtModelname.Text = CurrentTable.Modelname
 	txtManagerName.Text = CurrentTable.Managername
 	UpdateColumnList
 	
