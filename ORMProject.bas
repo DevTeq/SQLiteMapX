@@ -61,8 +61,7 @@ Private Sub MapDatabaseTablesToTables
 	Dim rs As ResultSet = sql.ExecQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
 	Do While rs.NextRow
 		Dim t As Table
-		Dim Modelname As String = GuessSingularNoun(rs.GetString("name"))
-		t.Initialize(rs.GetString("name"), Modelname & "Manager")
+		t.Initialize(rs.GetString("name"), rs.GetString("name") & "Manager")
 		t.AddColumns(MapDatabaseColumnsToColumns(t.Name))
 		mTableList.Add(t)
 	Loop
@@ -141,18 +140,3 @@ Public Sub GetB4XTypesIndex(B4XType As String) As Int
 	Return ListB4XTypes.IndexOf(B4XType)
 End Sub
 #End Region
-
-Public Sub GuessSingularNoun(Noun As String) As String
-	Dim Nouns As Map = File.ReadMap(File.DirAssets, "nouns.txt")
-	
-	If Nouns.ContainsKey(Noun.ToLowerCase) Then
-		Dim Singular As String = Nouns.Get(Noun)
-		Return Singular.SubString2(0, 1).ToUpperCase & Singular.SubString(1)
-	End If
-	
-	Dim LastLetter As String = Noun.SubString(Noun.Length - 1)
-	If LastLetter.ToLowerCase = "s" Then
-		Return Noun.SubString2(0, Noun.Length - 1)
-	End If
-	Return Noun
-End Sub

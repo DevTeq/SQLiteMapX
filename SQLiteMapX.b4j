@@ -2,12 +2,10 @@
 Build1=Default,b4j.example
 File1=clvColumns.bjl
 File2=CreateReference.bjl
-File3=nouns.txt
-File4=Project.bjl
+File3=Project.bjl
 FileGroup1=Default Group
 FileGroup2=Default Group
 FileGroup3=Default Group
-FileGroup4=Default Group
 Group=Default Group
 Library1=javaobject
 Library2=jcore
@@ -31,10 +29,10 @@ Module6=B4XSelect
 Module7=B4XSub
 Module8=B4XWhileLoop
 Module9=Column
-NumberOfFiles=4
+NumberOfFiles=3
 NumberOfLibraries=8
 NumberOfModules=14
-Version=8.8
+Version=8.9
 @EndOfDesignText@
 #Region Project Attributes 
 	#MainFormWidth: 600
@@ -138,6 +136,7 @@ Sub cmbB4XType_ValueChanged (Value As Object)
 		Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
 		c.B4XType = Value
 		If Value = "Reference" Then
+			c.B4XType = c.ReferenceColumn
 			Dim NonCurrentTables As List
 			NonCurrentTables.Initialize
 			For Each T As Table In CurrentProject.Tables
