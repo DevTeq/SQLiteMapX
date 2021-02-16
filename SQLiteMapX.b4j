@@ -1,11 +1,9 @@
 ﻿AppType=JavaFX
 Build1=Default,b4j.example
 File1=clvColumns.bjl
-File2=CreateReference.bjl
-File3=Project.bjl
+File2=Project.bjl
 FileGroup1=Default Group
 FileGroup2=Default Group
-FileGroup3=Default Group
 Group=Default Group
 Library1=javaobject
 Library2=jcore
@@ -16,11 +14,10 @@ Library6=jxui
 Library7=xcustomlistview
 Library8=threading
 Module1=B4XCodeBlock
-Module10=CreateReferenceForm
-Module11=FormExtension
-Module12=ORMProject
-Module13=Parser
-Module14=Table
+Module10=FormExtension
+Module11=ORMProject
+Module12=Parser
+Module13=Table
 Module2=B4XCodeGenerator
 Module3=B4XFile
 Module4=B4XForEach
@@ -29,9 +26,9 @@ Module6=B4XSelect
 Module7=B4XSub
 Module8=B4XWhileLoop
 Module9=Column
-NumberOfFiles=3
+NumberOfFiles=2
 NumberOfLibraries=8
-NumberOfModules=14
+NumberOfModules=13
 Version=8.9
 @EndOfDesignText@
 #Region Project Attributes 
@@ -99,24 +96,13 @@ Sub CreateListItem(c As Column) As B4XView
 	lblDatabaseColumnType.Text = c.DatabaseType
 	cmbB4XType.Items.AddAll(CurrentProject.ListB4XTypes)
 	cmbB4XType.SelectedIndex = CurrentProject.GetB4XTypesIndex(c.B4XType)
-	If cmbB4XType.Value = "Reference" Then
+	If c.ReferenceTable <> "" Then
 		cmbB4XType.Value = "Reference (" & c.ReferenceTable & "." & c.ReferenceColumn & ")"
 	End If
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
 	
 	Return p
-End Sub
-
-Sub chkIsMandatory_CheckedChange(Checked As Boolean)
-	Dim index As Int = lstColumns.GetItemFromView(Sender)
-	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
-	c.IsMandatory = Checked
-	
-	If Checked = False Then
-		Dim chkUniqueSibling As B4XView = lstColumns.GetPanel(index).GetView(4)
-		chkUniqueSibling.Checked = False
-	End If
 End Sub
 
 Sub chkUnique_CheckedChange(Checked As Boolean)
@@ -135,21 +121,6 @@ Sub cmbB4XType_ValueChanged (Value As Object)
 		Dim index As Int = lstColumns.GetItemFromView(Sender)
 		Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
 		c.B4XType = Value
-		If Value = "Reference" Then
-			c.B4XType = c.ReferenceColumn
-			Dim NonCurrentTables As List
-			NonCurrentTables.Initialize
-			For Each T As Table In CurrentProject.Tables
-				If T.Name <> CurrentTable.Name Then
-					NonCurrentTables.Add(T)
-				End If
-			Next
-			If NonCurrentTables.Size > 0 Then
-				CreateReferenceForm.Open(NonCurrentTables)
-			Else
-				fx.Msgbox(MainForm, "There is only 1 table in this database, so referencing with another table is impossible.", "Error")
-			End If
-		End If
 	End If
 End Sub
 

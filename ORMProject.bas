@@ -132,7 +132,7 @@ End Sub
 public Sub ListB4XTypes As List
 	Dim b4xtypelist As List
 	b4xtypelist.Initialize
-	b4xtypelist.AddAll(Array As String("String", "Int", "Long", "Double", "Boolean", "Reference"))
+	b4xtypelist.AddAll(Array As String("String", "Int", "Long", "Double", "Boolean"))
 	Return b4xtypelist
 End Sub
 

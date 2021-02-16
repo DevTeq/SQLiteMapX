@@ -43,10 +43,6 @@ Public Sub getIsMandatory() As Boolean
 	Return mIsMandatory
 End Sub
 
-Public Sub setIsMandatory(value As Boolean)
-	mIsMandatory = value
-End Sub
-
 Public Sub setB4XType(value As String)
 	mB4XType = value
 End Sub
