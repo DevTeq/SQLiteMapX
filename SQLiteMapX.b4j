@@ -1,7 +1,7 @@
 ﻿AppType=JavaFX
 Build1=Default,b4j.example
 File1=clvColumns.bjl
-File2=nouns.txt
+File2=CreateReference.bjl
 File3=Project.bjl
 FileGroup1=Default Group
 FileGroup2=Default Group
@@ -16,10 +16,11 @@ Library6=jxui
 Library7=xcustomlistview
 Library8=threading
 Module1=B4XCodeBlock
-Module10=FormExtension
-Module11=ORMProject
-Module12=Parser
-Module13=Table
+Module10=CreateReferenceForm
+Module11=FormExtension
+Module12=ORMProject
+Module13=Parser
+Module14=Table
 Module2=B4XCodeGenerator
 Module3=B4XFile
 Module4=B4XForEach
@@ -30,8 +31,8 @@ Module8=B4XWhileLoop
 Module9=Column
 NumberOfFiles=3
 NumberOfLibraries=8
-NumberOfModules=13
-Version=8.8
+NumberOfModules=14
+Version=8.9
 @EndOfDesignText@
 #Region Project Attributes 
 	#MainFormWidth: 600
@@ -52,7 +53,6 @@ Sub Process_Globals
 	Private cmbB4XType As ComboBox
 	Private chkIsMandatory As B4XView
 	Private mSaveProjectPath As String
-	Private txtModelname As B4XView
 	Private txtManagerName As B4XView
 	Private chkGenerated As B4XView
 	Private txtDefaultValue As B4XView
@@ -72,7 +72,6 @@ Sub OpenDatabase(FilePath As String)
 		CurrentProject.Initialize
 		CurrentProject.LoadProjectSQLite(FilePath)
 		MainForm.Title = "Working with database: " & CurrentProject.DatabasePath
-		txtModelname.Enabled = True
 		txtManagerName.Enabled = True
 		UpdateTableCombobox
 		cmbTables.SelectedIndex = 0
@@ -100,6 +99,9 @@ Sub CreateListItem(c As Column) As B4XView
 	lblDatabaseColumnType.Text = c.DatabaseType
 	cmbB4XType.Items.AddAll(CurrentProject.ListB4XTypes)
 	cmbB4XType.SelectedIndex = CurrentProject.GetB4XTypesIndex(c.B4XType)
+	If cmbB4XType.Value = "Reference" Then
+		cmbB4XType.Value = "Reference (" & c.ReferenceTable & "." & c.ReferenceColumn & ")"
+	End If
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
 	
@@ -133,6 +135,21 @@ Sub cmbB4XType_ValueChanged (Value As Object)
 		Dim index As Int = lstColumns.GetItemFromView(Sender)
 		Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
 		c.B4XType = Value
+		If Value = "Reference" Then
+			c.B4XType = c.ReferenceColumn
+			Dim NonCurrentTables As List
+			NonCurrentTables.Initialize
+			For Each T As Table In CurrentProject.Tables
+				If T.Name <> CurrentTable.Name Then
+					NonCurrentTables.Add(T)
+				End If
+			Next
+			If NonCurrentTables.Size > 0 Then
+				CreateReferenceForm.Open(NonCurrentTables)
+			Else
+				fx.Msgbox(MainForm, "There is only 1 table in this database, so referencing with another table is impossible.", "Error")
+			End If
+		End If
 	End If
 End Sub
 
@@ -216,13 +233,8 @@ Sub ExportProject
 	End If
 End Sub
 
-Sub txtModelname_TextChanged (Old As String, New As String)
-	CurrentTable.Modelname = New
-End Sub
-
 Sub cmbTables_ValueChanged (Value As Object)
 	CurrentTable = CurrentProject.GetTable(Value)
-	txtModelname.Text = CurrentTable.Modelname
 	txtManagerName.Text = CurrentTable.Managername
 	UpdateColumnList
 	

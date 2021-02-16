@@ -61,8 +61,7 @@ Private Sub MapDatabaseTablesToTables
 	Dim rs As ResultSet = sql.ExecQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
 	Do While rs.NextRow
 		Dim t As Table
-		Dim Modelname As String = GuessSingularNoun(rs.GetString("name"))
-		t.Initialize(rs.GetString("name"), Modelname, Modelname & "Manager")
+		t.Initialize(rs.GetString("name"), rs.GetString("name") & "Manager")
 		t.AddColumns(MapDatabaseColumnsToColumns(t.Name))
 		mTableList.Add(t)
 	Loop
@@ -72,13 +71,33 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 	Dim ColumnList As List
 	ColumnList.Initialize
 	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & TableName & "')")
+
 	Do While rs.NextRow
+		Dim B4XType As String = MapDatabaseTypeToB4XType(rs.GetString("type"))
+		Dim ReferenceTable As String
+		Dim ReferenceColumn As String
+		Dim SplittedReference As List = Regex.Split("\|", GetForeignKeyReference(TableName, rs.GetString("name")))
+		If SplittedReference.Size = 2 Then
+			ReferenceTable = SplittedReference.Get(0)
+			ReferenceColumn = SplittedReference.Get(1)
+			B4XType = "Reference"
+		End If
 		Dim c As Column
-		c.Initialize(rs.GetString("name"), rs.GetString("type"), MapDatabaseTypeToB4XType(rs.GetString("type")),Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
+		c.Initialize(rs.GetString("name"), rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn,Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
 		ColumnList.Add(c)
 	Loop
-	
 	Return ColumnList
+End Sub
+
+Private Sub GetForeignKeyReference(TableName As String, ColumnName As String) As String
+	Dim Reference As String
+	Dim rsForeignKeys As ResultSet = sql.ExecQuery("SELECT * FROM pragma_foreign_key_list('" & TableName & "');")
+	Do While rsForeignKeys.NextRow
+		If rsForeignKeys.GetString("from") = ColumnName Then
+			Reference = rsForeignKeys.GetString("table") & "|" & rsForeignKeys.GetString("to") 
+		End If
+	Loop
+	Return Reference
 End Sub
 
 Private Sub MapDatabaseTypeToB4XType(DatabaseType As String) As String
@@ -111,27 +130,13 @@ Public Sub ToJson() As JSONGenerator
 End Sub
 
 public Sub ListB4XTypes As List
-	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean")
+	Dim b4xtypelist As List
+	b4xtypelist.Initialize
+	b4xtypelist.AddAll(Array As String("String", "Int", "Long", "Double", "Boolean", "Reference"))
 	Return b4xtypelist
 End Sub
 
 Public Sub GetB4XTypesIndex(B4XType As String) As Int
-	Dim b4xtypelist As List = Array As String("String", "Int", "Long", "Double", "Boolean")
-	Return b4xtypelist.IndexOf(B4XType)
+	Return ListB4XTypes.IndexOf(B4XType)
 End Sub
 #End Region
-
-Public Sub GuessSingularNoun(Noun As String) As String
-	Dim Nouns As Map = File.ReadMap(File.DirAssets, "nouns.txt")
-	
-	If Nouns.ContainsKey(Noun.ToLowerCase) Then
-		Dim Singular As String = Nouns.Get(Noun)
-		Return Singular.SubString2(0, 1).ToUpperCase & Singular.SubString(1)
-	End If
-	
-	Dim LastLetter As String = Noun.SubString(Noun.Length - 1)
-	If LastLetter.ToLowerCase = "s" Then
-		Return Noun.SubString2(0, Noun.Length - 1)
-	End If
-	Return Noun
-End Sub

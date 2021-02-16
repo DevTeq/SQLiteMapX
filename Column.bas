@@ -8,6 +8,8 @@ Sub Class_Globals
 	Private mName As String
 	Private mDatabaseType As String
 	Private mB4XType As String
+	Private mReferenceTable As String
+	Private mReferenceColumn As String
 	Private mIsMandatory As Boolean
 	Private mUnique As Boolean
 	Private mISGenerated As Boolean
@@ -16,10 +18,12 @@ Sub Class_Globals
 End Sub
 
 'Initializes the object. You can add parameters to this method if needed.
-Public Sub Initialize(Name As String, DatabaseType As String, B4XType As String, IsMandatory As Boolean, Unique As Boolean, IsGenerated As Boolean, DefaultValue As String, IsImmutable As Boolean)
+Public Sub Initialize(Name As String, DatabaseType As String, B4XType As String, ReferenceTable As String, ReferenceColumn As String, IsMandatory As Boolean, Unique As Boolean, IsGenerated As Boolean, DefaultValue As String, IsImmutable As Boolean)
 	mName = Name
 	mDatabaseType = DatabaseType
 	mB4XType = B4XType
+	mReferenceTable = ReferenceTable
+	mReferenceColumn = ReferenceColumn
 	mIsMandatory = IsMandatory
 	mUnique = Unique
 	mISGenerated = IsGenerated
@@ -81,6 +85,14 @@ End Sub
 
 Public Sub getIsImmutable As Boolean
 	Return mIsImmutable
+End Sub
+
+Public Sub getReferenceTable As String
+	Return mReferenceTable
+End Sub
+
+Public Sub getReferenceColumn As String
+	Return mReferenceColumn
 End Sub
 
 Public Sub ToMap() As Map

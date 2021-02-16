@@ -8,15 +8,13 @@ Sub Class_Globals
 	Private fx As JFX
 	Private mName As String
 	Private mColumnList As List
-	Private mModelname As String
 	Private mManagername As String
 End Sub
 
 'Initializes the object. You can add parameters to this method if needed.
-Public Sub Initialize(Name As String, Modelname As String, Managername As String)
+Public Sub Initialize(Name As String, Managername As String)
 	mColumnList.Initialize
 	mName = Name
-	mModelname = Modelname
 	mManagername = Managername
 End Sub
 
@@ -26,14 +24,6 @@ End Sub
 
 Public Sub setName(Name As String)
 	mName = Name
-End Sub
-
-Public Sub getModelname As String
-	Return mModelname
-End Sub
-
-Public Sub setModelname(Modelname As String)
-	mModelname = Modelname
 End Sub
 
 Public Sub getManagername() As String
