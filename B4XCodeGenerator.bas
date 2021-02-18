@@ -102,6 +102,9 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	Dim AllColumns As String
 	Dim AllColumnValues As String
 	For Each c As Column In T.Columns
+		If c.B4XType.StartsWith("Reference (") Then
+			c.B4XType = c.ReferenceTable
+		End If
 		AllColumns = AllColumns & Chr(34) & c.Name & Chr(34) & ", "
 		AllColumnValues = AllColumnValues & "m" & c.Name & ", "
 		PGlobals.AddCodeLine(GenerateVariable("m" & c.Name, "Private", c.B4XType))
