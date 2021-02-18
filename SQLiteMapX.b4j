@@ -53,6 +53,7 @@ Sub Process_Globals
 	Private txtManagerName As B4XView
 	Private chkGenerated As B4XView
 	Private txtDefaultValue As B4XView
+	Private chkUnique As B4XView
 End Sub
 
 Sub AppStart (Form1 As Form, Args() As String)
@@ -101,6 +102,7 @@ Sub CreateListItem(c As Column) As B4XView
 	End If
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
+	chkUnique.Checked = c.Unique
 	
 	Return p
 End Sub

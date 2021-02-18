@@ -73,20 +73,30 @@ Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
 	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & TableName & "')")
 
 	Do While rs.NextRow
+		Dim ColumnName As String = rs.GetString("name")
 		Dim B4XType As String = MapDatabaseTypeToB4XType(rs.GetString("type"))
 		Dim ReferenceTable As String
 		Dim ReferenceColumn As String
-		Dim SplittedReference As List = Regex.Split("\|", GetForeignKeyReference(TableName, rs.GetString("name")))
+		Dim SplittedReference As List = Regex.Split("\|", GetForeignKeyReference(TableName, ColumnName))
 		If SplittedReference.Size = 2 Then
 			ReferenceTable = SplittedReference.Get(0)
 			ReferenceColumn = SplittedReference.Get(1)
-			B4XType = "Reference"
 		End If
 		Dim c As Column
-		c.Initialize(rs.GetString("name"), rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn,Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False)
+		c.Initialize(ColumnName, rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn, Parser.IntToBoolean(rs.GetInt("notnull")), IsColumnUnique(TableName, ColumnName), False, "", False)
 		ColumnList.Add(c)
 	Loop
 	Return ColumnList
+End Sub
+
+Private Sub IsColumnUnique(TableName As String, ColumnName As String) As Boolean
+	Dim rs As ResultSet = sql.ExecQuery($"SELECT (SELECT name FROM pragma_index_info(pmi.name)) AS UniqueColumn FROM pragma_index_list("${TableName}") AS pmi"$)
+	Do While rs.NextRow
+		If rs.GetString("UniqueColumn") = ColumnName Then
+			Return True
+		End If
+	Loop
+	Return False
 End Sub
 
 Private Sub GetForeignKeyReference(TableName As String, ColumnName As String) As String
