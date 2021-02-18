@@ -99,6 +99,7 @@ Sub CreateListItem(c As Column) As B4XView
 	cmbB4XType.SelectedIndex = CurrentProject.GetB4XTypesIndex(c.B4XType)
 	If c.ReferenceTable <> "" Then
 		cmbB4XType.Value = "Reference (" & c.ReferenceTable & "." & c.ReferenceColumn & ")"
+		cmbB4XType.Enabled = False
 	End If
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
