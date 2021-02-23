@@ -44,7 +44,7 @@ Public Sub GenerateB4XProjectFile(ORMP As ORMProject) As String
 	For Each T As Table In ORMP.Tables
 		ProjectFileCode = ProjectFileCode & "Module" & Index & "=" & T.Name & CRLF
 		Index = Index + 1
-		ProjectFileCode = ProjectFileCode & "Module" & Index & "=" & T.Managername & CRLF
+		ProjectFileCode = ProjectFileCode & "Module" & Index & "=" & T.Name & "Manager" & CRLF
 		Index = Index + 1
 	Next
 	
@@ -102,9 +102,6 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	Dim AllColumns As String
 	Dim AllColumnValues As String
 	For Each c As Column In T.Columns
-		If c.B4XType.StartsWith("Reference (") Then
-			c.B4XType = c.ReferenceTable
-		End If
 		AllColumns = AllColumns & Chr(34) & c.Name & Chr(34) & ", "
 		AllColumnValues = AllColumnValues & "m" & c.Name & ", "
 		PGlobals.AddCodeLine(GenerateVariable("m" & c.Name, "Private", c.B4XType))
@@ -112,8 +109,15 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		
 		Dim getColumn As B4XSub
 		getColumn.Initialize("Public","get" & c.Name)
-		getColumn.ReturnType = "String"
-		getColumn.AddCodeLine("Return m" & c.Name)
+		getColumn.ReturnType = c.B4XType
+		If c.ReferenceTable <> "" Then
+			getColumn.ReturnType = c.ReferenceTable
+			'TODO: Change parenttable managername to referencetable manger name
+			getColumn.AddCodeLine($"Return ${c.ReferenceTable}Manager.GetBy${c.ReferenceColumn}(m${c.Name})"$)
+		Else
+			getColumn.ReturnType = c.B4XType
+			getColumn.AddCodeLine("Return m" & c.Name)
+		End If
 		TableModel.AddB4XSub(getColumn)
 		
 		If c.IsGenerated And c.IsImmutable = False Then
@@ -126,8 +130,14 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		If c.IsGenerated = False Or c.IsImmutable Then
 			Dim setColumn As B4XSub
 			setColumn.Initialize("Public", "set" & c.Name)
-			setColumn.AddParameter(c.Name & " As " & c.B4XType)
-			setColumn.AddCodeLine("m" & c.Name & " = " & c.Name)
+			If c.ReferenceTable <> "" Then
+				setColumn.AddParameter(c.Name & " As " & c.ReferenceTable)
+				setColumn.AddCodeLine("m" & c.Name & " = " & c.Name & "." & c.ReferenceColumn)
+			Else
+				setColumn.AddParameter(c.Name & " As " & c.B4XType)
+				setColumn.AddCodeLine("m" & c.Name & " = " & c.Name)
+			End If
+			
 			TableModel.AddB4XSub(setColumn)
 		End If
 		
@@ -403,7 +413,7 @@ End Sub
 #Region GenerateManagerFile
 Private Sub GenerateB4XManagerFromTable(T As Table) As B4XFile
 	Dim ManagerFile As B4XFile
-	ManagerFile.Initialize(T.Managername, False)
+	ManagerFile.Initialize(T.Name & "Manager", False)
 	
 	Dim PGlobals As B4XSub
 	PGlobals.Initialize("Public", "Process_Globals")

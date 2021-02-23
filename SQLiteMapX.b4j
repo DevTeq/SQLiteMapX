@@ -50,10 +50,10 @@ Sub Process_Globals
 	Private cmbB4XType As ComboBox
 	Private chkIsMandatory As B4XView
 	Private mSaveProjectPath As String
-	Private txtManagerName As B4XView
 	Private chkGenerated As B4XView
 	Private txtDefaultValue As B4XView
 	Private chkUnique As B4XView
+	Private chkImmutable As B4XView
 End Sub
 
 Sub AppStart (Form1 As Form, Args() As String)
@@ -70,7 +70,6 @@ Sub OpenDatabase(FilePath As String)
 		CurrentProject.Initialize
 		CurrentProject.LoadProjectSQLite(FilePath)
 		MainForm.Title = "Working with database: " & CurrentProject.DatabasePath
-		txtManagerName.Enabled = True
 		UpdateTableCombobox
 		cmbTables.SelectedIndex = 0
 		CurrentTable = CurrentProject.GetTable(cmbTables.Value)
@@ -104,7 +103,10 @@ Sub CreateListItem(c As Column) As B4XView
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
 	chkUnique.Checked = c.Unique
-	
+	chkImmutable.Checked = c.IsImmutable
+	If chkImmutable.Checked Then
+		chkImmutable.Enabled = False
+	End If
 	Return p
 End Sub
 
@@ -123,7 +125,10 @@ Sub cmbB4XType_ValueChanged (Value As Object)
 	If lstColumns.IsInitialized Then
 		Dim index As Int = lstColumns.GetItemFromView(Sender)
 		Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
-		c.B4XType = Value
+		Dim ValueString As String = Value
+		If ValueString.StartsWith("Reference (") = False Then
+			c.B4XType = Value
+		End If
 	End If
 End Sub
 
@@ -209,13 +214,7 @@ End Sub
 
 Sub cmbTables_ValueChanged (Value As Object)
 	CurrentTable = CurrentProject.GetTable(Value)
-	txtManagerName.Text = CurrentTable.Managername
 	UpdateColumnList
-	
-End Sub
-
-Sub txtManagerName_TextChanged (Old As String, New As String)
-	CurrentTable.Managername = New
 End Sub
 
 Private Sub chkImmutable_CheckedChange(Checked As Boolean)

@@ -8,14 +8,12 @@ Sub Class_Globals
 	Private fx As JFX
 	Private mName As String
 	Private mColumnList As List
-	Private mManagername As String
 End Sub
 
 'Initializes the object. You can add parameters to this method if needed.
-Public Sub Initialize(Name As String, Managername As String)
+Public Sub Initialize(Name As String)
 	mColumnList.Initialize
 	mName = Name
-	mManagername = Managername
 End Sub
 
 Public Sub getName As String
@@ -24,14 +22,6 @@ End Sub
 
 Public Sub setName(Name As String)
 	mName = Name
-End Sub
-
-Public Sub getManagername() As String
-	Return mManagername
-End Sub
-
-Public Sub setManagername(Managername As String)
-	mManagername = Managername
 End Sub
 
 Public Sub AddColumns(Columns As List)
@@ -58,15 +48,4 @@ Public Sub ToMap() As Map
 	Next
 	
 	Return CreateMap("name":mName, "columns":columnList)
-End Sub
-
-Public Sub ToB4XModel() As String
-	Dim code As String
-	code = code + "Sub Class_Globals"
-	For Each c As Column In mColumnList
-		code = code + CRLF + "Private m" + c.Name + " As " + c.B4XType 
-	Next
-	code = code + "End Sub"
-	
-	
 End Sub

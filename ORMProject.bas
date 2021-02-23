@@ -61,29 +61,29 @@ Private Sub MapDatabaseTablesToTables
 	Dim rs As ResultSet = sql.ExecQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
 	Do While rs.NextRow
 		Dim t As Table
-		t.Initialize(rs.GetString("name"), rs.GetString("name") & "Manager")
-		t.AddColumns(MapDatabaseColumnsToColumns(t.Name))
+		t.Initialize(rs.GetString("name"))
+		t.AddColumns(MapDatabaseColumnsToColumns(T))
 		mTableList.Add(t)
 	Loop
 End Sub
 
-Private Sub MapDatabaseColumnsToColumns(TableName As String) As List
+Private Sub MapDatabaseColumnsToColumns(T As Table) As List
 	Dim ColumnList As List
 	ColumnList.Initialize
-	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & TableName & "')")
+	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & T.Name & "')")
 
 	Do While rs.NextRow
 		Dim ColumnName As String = rs.GetString("name")
 		Dim B4XType As String = MapDatabaseTypeToB4XType(rs.GetString("type"))
 		Dim ReferenceTable As String
 		Dim ReferenceColumn As String
-		Dim SplittedReference As List = Regex.Split("\|", GetForeignKeyReference(TableName, ColumnName))
+		Dim SplittedReference As List = Regex.Split("\|", GetForeignKeyReference(T.Name, ColumnName))
 		If SplittedReference.Size = 2 Then
 			ReferenceTable = SplittedReference.Get(0)
 			ReferenceColumn = SplittedReference.Get(1)
 		End If
 		Dim c As Column
-		c.Initialize(ColumnName, rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn, Parser.IntToBoolean(rs.GetInt("notnull")), IsColumnUnique(TableName, ColumnName), False, "", False)
+		c.Initialize(ColumnName, rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn, Parser.IntToBoolean(rs.GetInt("notnull")), IsColumnUnique(T.Name, ColumnName), False, "", IsImmutable(T.Name, ColumnName), T)
 		ColumnList.Add(c)
 	Loop
 	Return ColumnList
@@ -91,6 +91,16 @@ End Sub
 
 Private Sub IsColumnUnique(TableName As String, ColumnName As String) As Boolean
 	Dim rs As ResultSet = sql.ExecQuery($"SELECT (SELECT name FROM pragma_index_info(pmi.name)) AS UniqueColumn FROM pragma_index_list("${TableName}") AS pmi"$)
+	Do While rs.NextRow
+		If rs.GetString("UniqueColumn") = ColumnName Then
+			Return True
+		End If
+	Loop
+	Return False
+End Sub
+
+Private Sub IsImmutable(TableName As String, ColumnName As String) As Boolean
+	Dim rs As ResultSet = sql.ExecQuery($"SELECT (SELECT name FROM pragma_index_info(pmi.name)) AS UniqueColumn, origin FROM pragma_index_list("${TableName}") AS pmi WHERE origin = "pk""$)
 	Do While rs.NextRow
 		If rs.GetString("UniqueColumn") = ColumnName Then
 			Return True
