@@ -6,6 +6,7 @@ Version=8.5
 @EndOfDesignText@
 Sub Class_Globals
 	Private mTableList As List
+	Private mManyToManyRelationList As List
 	Private mDatabasePath As String
 	Private sql As SQL
 	Private mName As String
@@ -14,6 +15,7 @@ End Sub
 'Initialize the ORMProject from a project file (.b4orm file)
 Public Sub Initialize()
 	mTableList.Initialize
+	mManyToManyRelationList.Initialize
 End Sub
 
 'Initializes the ORMProject starting from a SQLitePath.
@@ -56,14 +58,54 @@ Public Sub GetTable(Name As String) As Table
 	Return Null
 End Sub
 
+Public Sub getManyToManyRelations() As List
+	Return mManyToManyRelationList
+End Sub
+
+Public Sub GetManyToManyRelation(LeftTableName As String, RightTableName As String) As ManyToManyRelation
+	For Each m2m As ManyToManyRelation In mManyToManyRelationList
+		If (m2m.LeftColumn.ParentTable.Name = LeftTableName) And (m2m.RightColumn.ParentTable.Name = RightTableName) Then
+			Return m2m
+		End If
+	Next
+	Return Null
+End Sub
+
 #Region InterpretDatabase
 Private Sub MapDatabaseTablesToTables
-	Dim rs As ResultSet = sql.ExecQuery("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+	Dim getTablesSQL As String = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+	'First do normal tables
+	Dim rs As ResultSet = sql.ExecQuery(getTablesSQL)
 	Do While rs.NextRow
-		Dim t As Table
-		t.Initialize(rs.GetString("name"))
-		t.AddColumns(MapDatabaseColumnsToColumns(T))
-		mTableList.Add(t)
+		If rs.GetString("name").Contains("_") = False Then 
+			Dim t As Table
+			t.Initialize(rs.GetString("name"))
+			t.AddColumns(MapDatabaseColumnsToColumns(T))
+			mTableList.Add(t)
+		End If
+	Loop
+	
+	'Then ManyToManyRelations are handled
+	rs = sql.ExecQuery(getTablesSQL)
+	Do While rs.NextRow
+		Dim databaseName As String = rs.GetString("name")
+		If databaseName.Contains("_") Then
+			Dim leftTable As Table = GetTable(Regex.Split("_", databaseName)(0))
+			Dim rightTable As Table = GetTable(Regex.Split("_", databaseName)(1))
+			
+			Dim ColumnList As List = MapRelationColumnsToColumns(databaseName, leftTable, rightTable)
+			
+			Dim SubList As List
+			SubList.Initialize
+			
+			For i = 2 To ColumnList.Size - 1
+				SubList.Add(ColumnList.Get(i))
+			Next
+			
+			Dim ManyToMany As ManyToManyRelation
+			ManyToMany.Initialize(ColumnList.Get(0), ColumnList.Get(1), SubList)
+			mManyToManyRelationList.Add(ManyToMany)
+		End If
 	Loop
 End Sub
 
@@ -85,6 +127,32 @@ Private Sub MapDatabaseColumnsToColumns(T As Table) As List
 		Dim c As Column
 		c.Initialize(ColumnName, rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn, Parser.IntToBoolean(rs.GetInt("notnull")), IsColumnUnique(T.Name, ColumnName), False, "", IsImmutable(T.Name, ColumnName), T)
 		ColumnList.Add(c)
+	Loop
+	Return ColumnList
+End Sub
+
+Private Sub MapRelationColumnsToColumns(RelationTableName As String, LeftTable As Table, RightTable As Table) As List
+	Dim ColumnList As List
+	ColumnList.Initialize
+	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & RelationTableName & "')")
+
+	Dim index As Int
+	Do While rs.NextRow
+		Dim ColumnName As String = rs.GetString("name")
+		Dim B4XType As String = MapDatabaseTypeToB4XType(rs.GetString("type"))
+		Dim c As Column
+		Dim parentTable As Table
+		Select index
+			Case 0
+				parentTable = LeftTable
+			Case 1
+				parentTable = RightTable
+			Case Else
+				parentTable = Null
+		End Select
+		c.Initialize(ColumnName, rs.GetString("type"), B4XType, "", "", Parser.IntToBoolean(rs.GetInt("notnull")), False, False, "", False, parentTable)
+		ColumnList.Add(c)
+		index = index + 1
 	Loop
 	Return ColumnList
 End Sub

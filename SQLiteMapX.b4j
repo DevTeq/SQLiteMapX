@@ -15,9 +15,10 @@ Library7=xcustomlistview
 Library8=threading
 Module1=B4XCodeBlock
 Module10=FormExtension
-Module11=ORMProject
-Module12=Parser
-Module13=Table
+Module11=ManyToManyRelation
+Module12=ORMProject
+Module13=Parser
+Module14=Table
 Module2=B4XCodeGenerator
 Module3=B4XFile
 Module4=B4XForEach
@@ -28,7 +29,7 @@ Module8=B4XWhileLoop
 Module9=Column
 NumberOfFiles=2
 NumberOfLibraries=8
-NumberOfModules=13
+NumberOfModules=14
 Version=8.9
 @EndOfDesignText@
 #Region Project Attributes 
@@ -45,6 +46,7 @@ Sub Process_Globals
 	Private CurrentProject As ORMProject
 	Private lstColumns As CustomListView
 	Private CurrentTable As Table
+	Private CurrentManytoManyRelation As ManyToManyRelation
 	Private lblColumnName As B4XView
 	Private lblDatabaseColumnType As B4XView
 	Private cmbB4XType As ComboBox
@@ -64,7 +66,7 @@ Sub AppStart (Form1 As Form, Args() As String)
 End Sub
 
 'Opens a project from a file.
-'Pass the SQLite file and True if you want to create a new project
+'Pass the SQLite file to create a new project
 Sub OpenDatabase(FilePath As String)
 		mSaveProjectPath = File.GetFileParent(FilePath)
 		CurrentProject.Initialize
@@ -79,13 +81,25 @@ Sub UpdateTableCombobox
 	For Each t As Table In CurrentProject.Tables
 		cmbTables.Items.Add(t.Name)
 	Next
+	
+	For Each m2m As ManyToManyRelation In CurrentProject.ManyToManyRelations
+		cmbTables.Items.Add("Many-To-Many Relation: " & m2m.LeftColumn.ParentTable.Name & " <-> " & m2m.RightColumn.ParentTable.Name)
+	Next
 End Sub
 
 Sub UpdateColumnList
 	lstColumns.Clear
-	For Each c As Column In CurrentTable.Columns
-		lstColumns.Add(CreateListItem(c), c.Name)
-	Next
+
+	If CurrentTable <> Null Then
+		For Each c As Column In CurrentTable.Columns
+			lstColumns.Add(CreateListItem(c), c.Name)
+		Next
+	Else
+		For Each c As Column In CurrentManytoManyRelation.Columns
+			lstColumns.Add(CreateListItem(c), c.Name)
+		Next
+	End If
+	
 End Sub
 
 Sub CreateListItem(c As Column) As B4XView
@@ -124,7 +138,13 @@ End Sub
 Sub cmbB4XType_ValueChanged (Value As Object)
 	If lstColumns.IsInitialized Then
 		Dim index As Int = lstColumns.GetItemFromView(Sender)
-		Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+		Dim c As Column
+		If CurrentTable <> Null Then
+			c = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+		Else
+			c = CurrentManytoManyRelation.getColumnByName(lstColumns.GetValue(index))
+		End If
+
 		Dim ValueString As String = Value
 		If ValueString.StartsWith("Reference (") = False Then
 			c.B4XType = Value
@@ -213,7 +233,18 @@ Sub ExportProject
 End Sub
 
 Sub cmbTables_ValueChanged (Value As Object)
-	CurrentTable = CurrentProject.GetTable(Value)
+	Dim newValue As String = Value
+	If newValue.StartsWith("Many-To-Many Relation: ") Then
+		Dim TablePart As String = Regex.Split(": ", newValue)(1)
+		Dim LeftTableName As String = Regex.Split(" <-> ", TablePart)(0)
+		Dim RightTablenName As String = Regex.Split(" <-> ", TablePart)(1)
+		CurrentTable = Null
+		CurrentManytoManyRelation = CurrentProject.GetManyToManyRelation(LeftTableName, RightTablenName)
+	Else
+		CurrentManytoManyRelation = Null
+		CurrentTable = CurrentProject.GetTable(Value)
+	End If
+	
 	UpdateColumnList
 End Sub
 

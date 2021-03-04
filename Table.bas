@@ -38,6 +38,7 @@ Public Sub GetColumnByName(Name As String) As Column
 			Return c
 		End If
 	Next
+	Return Null
 End Sub
 
 Public Sub ToMap() As Map

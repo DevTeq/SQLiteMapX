@@ -432,8 +432,6 @@ Private Sub GenerateB4XManagerFromTable(T As Table) As B4XFile
 					AlreadyCreatedDeleteSub = True
 				End If
 			End If
-			
-			
 		End If
 	Next
 	
@@ -451,16 +449,21 @@ Private Sub GenerateB4XManagerAddSub(T As Table) As B4XSub
 			If C.IsGenerated Then
 				InitStringParameters = InitStringParameters & C.DefaultValue & ", "
 			Else
-				AddSub.AddParameter(C.Name & " As " & C.B4XType)
-				InitStringParameters = InitStringParameters & C.Name & ", "
+				If C.ReferenceTable <> "" Then
+					AddSub.AddParameter(C.Name & " As " & C.ReferenceTable)
+					InitStringParameters = InitStringParameters & C.Name & "." & C.ReferenceColumn & ", "
+				Else
+					AddSub.AddParameter(C.Name & " As " & C.B4XType)
+					InitStringParameters = InitStringParameters & C.Name & ", "
+				End If
+				
 			End If			
 		Else
 			If C.B4XType = "string" Then
 				InitStringParameters = InitStringParameters & Chr(34) & C.DefaultValue & Chr(34) & ", "
 			Else
 				InitStringParameters = InitStringParameters & C.DefaultValue & ", "
-			End If
-			
+			End If		
 		End If
 	Next
 	
