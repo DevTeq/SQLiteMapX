@@ -88,7 +88,8 @@ End Sub
 
 Sub UpdateColumnList
 	lstColumns.Clear
-	For Each c As Column In CallSub(CurrentSelectedObject, "getColumns")
+	Dim columnList As List = CallSub(CurrentSelectedObject, "getcolumns")
+	For Each c As Column In columnList
 		lstColumns.Add(CreateListItem(c), c.Name)
 	Next
 End Sub

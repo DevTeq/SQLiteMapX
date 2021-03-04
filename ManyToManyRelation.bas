@@ -13,7 +13,6 @@ End Sub
 'Initializes the object. You can add parameters to this method if needed.
 Public Sub Initialize(LeftColumn As Column, RightColumn As Column, ColumnList As List)
 	mColumnList.Initialize2(ColumnList)
-	Log("Newly init m2m with " & LeftColumn.Name & " and " & RightColumn.Name)
 	mLeftColumn = LeftColumn
 	mRightColumn = RightColumn
 End Sub
