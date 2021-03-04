@@ -45,8 +45,7 @@ Sub Process_Globals
 	Private cmbTables As ComboBox
 	Private CurrentProject As ORMProject
 	Private lstColumns As CustomListView
-	Private CurrentTable As Table
-	Private CurrentManytoManyRelation As ManyToManyRelation
+	Private CurrentSelectedObject As Object
 	Private lblColumnName As B4XView
 	Private lblDatabaseColumnType As B4XView
 	Private cmbB4XType As ComboBox
@@ -74,7 +73,7 @@ Sub OpenDatabase(FilePath As String)
 		MainForm.Title = "Working with database: " & CurrentProject.DatabasePath
 		UpdateTableCombobox
 		cmbTables.SelectedIndex = 0
-		CurrentTable = CurrentProject.GetTable(cmbTables.Value)
+		CurrentSelectedObject = CurrentProject.GetTable(cmbTables.Value)
 End Sub
 
 Sub UpdateTableCombobox
@@ -89,17 +88,9 @@ End Sub
 
 Sub UpdateColumnList
 	lstColumns.Clear
-
-	If CurrentTable <> Null Then
-		For Each c As Column In CurrentTable.Columns
-			lstColumns.Add(CreateListItem(c), c.Name)
-		Next
-	Else
-		For Each c As Column In CurrentManytoManyRelation.Columns
-			lstColumns.Add(CreateListItem(c), c.Name)
-		Next
-	End If
-	
+	For Each c As Column In CallSub(CurrentSelectedObject, "getColumns")
+		lstColumns.Add(CreateListItem(c), c.Name)
+	Next
 End Sub
 
 Sub CreateListItem(c As Column) As B4XView
@@ -126,7 +117,7 @@ End Sub
 
 Sub chkUnique_CheckedChange(Checked As Boolean)
 	Dim index As Int = lstColumns.GetItemFromView(Sender)
-	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	Dim c As Column = CallSub2(CurrentSelectedObject, "GetColumnByName", lstColumns.GetValue(index))
 	c.Unique = Checked
 	
 	If Checked Then
@@ -138,13 +129,7 @@ End Sub
 Sub cmbB4XType_ValueChanged (Value As Object)
 	If lstColumns.IsInitialized Then
 		Dim index As Int = lstColumns.GetItemFromView(Sender)
-		Dim c As Column
-		If CurrentTable <> Null Then
-			c = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
-		Else
-			c = CurrentManytoManyRelation.getColumnByName(lstColumns.GetValue(index))
-		End If
-
+		Dim c As Column = CallSub2(CurrentSelectedObject, "GetColumnByName", lstColumns.GetValue(index))
 		Dim ValueString As String = Value
 		If ValueString.StartsWith("Reference (") = False Then
 			c.B4XType = Value
@@ -154,7 +139,7 @@ End Sub
 
 Private Sub chkGenerated_CheckedChange(Checked As Boolean)
 	Dim index As Int = lstColumns.GetItemFromView(Sender)
-	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	Dim c As Column = CallSub2(CurrentSelectedObject, "GetColumnByName", lstColumns.GetValue(index))
 	c.IsGenerated = Checked
 	Dim TxtDefaultValueSibling As TextField = lstColumns.GetPanel(index).GetView(6)
 	If Checked Then
@@ -166,7 +151,7 @@ End Sub
 
 Private Sub txtDefaultValue_TextChanged (Old As String, New As String)
 	Dim index As Int = lstColumns.GetItemFromView(Sender)
-	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	Dim c As Column = CallSub2(CurrentSelectedObject, "GetColumnByName", lstColumns.GetValue(index))
 	c.DefaultValue = New
 End Sub
 
@@ -238,11 +223,9 @@ Sub cmbTables_ValueChanged (Value As Object)
 		Dim TablePart As String = Regex.Split(": ", newValue)(1)
 		Dim LeftTableName As String = Regex.Split(" <-> ", TablePart)(0)
 		Dim RightTablenName As String = Regex.Split(" <-> ", TablePart)(1)
-		CurrentTable = Null
-		CurrentManytoManyRelation = CurrentProject.GetManyToManyRelation(LeftTableName, RightTablenName)
+		CurrentSelectedObject = CurrentProject.GetManyToManyRelation(LeftTableName, RightTablenName)
 	Else
-		CurrentManytoManyRelation = Null
-		CurrentTable = CurrentProject.GetTable(Value)
+		CurrentSelectedObject = CurrentProject.GetTable(Value)
 	End If
 	
 	UpdateColumnList
@@ -250,6 +233,6 @@ End Sub
 
 Private Sub chkImmutable_CheckedChange(Checked As Boolean)
 	Dim index As Int = lstColumns.GetItemFromView(Sender)
-	Dim c As Column = CurrentTable.GetColumnByName(lstColumns.GetValue(index))
+	Dim c As Column = CallSub2(CurrentSelectedObject, "GetColumnByName", lstColumns.GetValue(index))
 	c.IsImmutable = Checked
 End Sub
