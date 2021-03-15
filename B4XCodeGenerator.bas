@@ -23,6 +23,12 @@ Public Sub GenerateB4XCode(ORMP As ORMProject) As Map
 		TableManager.Group = "ORM\Managers"
 		FileMap.Put(TableManager.Name, TableManager)
 	Next
+	
+	For Each Relation As ManyToManyRelation In ORMP.ManyToManyRelations
+		Dim LeftModel As B4XFile = FileMap.Get(Relation.LeftColumn.Name)
+		
+		Dim 		
+	Next
 	Return FileMap
 End Sub
 
@@ -112,7 +118,6 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		getColumn.ReturnType = c.B4XType
 		If c.ReferenceTable <> "" Then
 			getColumn.ReturnType = c.ReferenceTable
-			'TODO: Change parenttable managername to referencetable manger name
 			getColumn.AddCodeLine($"Return ${c.ReferenceTable}Manager.GetBy${c.ReferenceColumn}(m${c.Name})"$)
 		Else
 			getColumn.ReturnType = c.B4XType
@@ -408,6 +413,38 @@ Private Sub GenerateDBCoreUpdateObject As B4XSub
 	
 	Return UpdateObject
 End Sub
+
+Private Sub GenerateDBCoreGetManyToManyList As B4XSub
+	Dim GetManyToManyListSub As B4XSub
+	GetManyToManyListSub.Initialize("Public", "GetManyToManyList")
+	GetManyToManyListSub.AddParameters(Array As String("LeftTableName As String", _
+	"LeftUniqueColumnName As String", "RelationTableName As String", "RelationLeftKey As String", _
+	"RelationRightKey As String", "RightTableName As String", "RightUniqueColumnName As String"))
+	GetManyToManyListSub.ReturnType = "List"
+	
+	GetManyToManyListSub.AddCodeLine("Dim RelationList As List")
+	GetManyToManyListSub.AddCodeLine("RelationList.Initialize")
+	GetManyToManyListSub.AddCodeLine($"Dim query As String = "SELECT " & RightTablerName & "." & RighttUniqueColumnName & " FROM " & LeftTableName & _"$)
+	GetManyToManyListSub.AddCodeLine($"" LEFT JOIN " & RelationTableName & " ON " & RightTableName & "." & RightUniqueColumnName & " = " & RelationTableName & "." & RelationRightKey & _"$)
+	GetManyToManyListSub.AddCodeLine($""$)
+	
+End Sub
+
+'Public Sub GetManyToManyList(LeftTableName As String, LeftUniqueColumnName As String, RelationTableName As String, RelationLeftKey As String, RelationRightKey As String, RightTableName As String, RightUniqueColumnName As String) As List
+'	Dim RelationList As List
+'	RelationList.Initialize
+'	Dim query As String = $"SELECT ${RightTableName}.${RightUniqueColumnName} FROM ${LeftTableName}
+'	LEFT JOIN ${RelationTableName} ON ${RightTableName}.${RightUniqueColumnName} = ${RelationTableName}.${RelationRightKey}
+'	LEFT JOIN ${LeftTableName} ON ${RelationTableName}.${RelationLeftKey} = ${LeftTableName}.${LeftUniqueColumnName}"$
+'	
+'	Dim RelationResult As ResultSet = db.ExecQuery(query)
+'	
+'	Do While RelationResult.NextRow
+'		RelationList.Add(GetObjectByUniqueColumnValue(RightTableName, RightUniqueColumnName, RelationResult.GetString(RightUniqueColumnName)))
+'	Loop
+'	
+'	Return RelationList
+'End Sub
 #End Region
 
 #Region GenerateManagerFile
@@ -525,6 +562,13 @@ Private Sub GenerateB4XManagerDelete(T As Table, UniqueImmutableColumnName As St
 End Sub
 #End Region
 
+#Region RelationsCode
+Private Sub AddRelationList(LeftModelFile As B4XFile, LeftTable As Table,  RightTable As Table)
+	Dim ListAllReferenceObjectSub As B4XSub
+	ListAllReferenceObjectSub.Initialize("Public", "get" & RightTable.Name & "List")
+	ListAllReferenceObjectSub(
+End Sub
+#End Region
 
 Private Sub GenerateVariable(Name As String, AccessModifier As String, VarType As String) As String
 	Return AccessModifier & " " & Name & " As " & VarType

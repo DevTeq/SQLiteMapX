@@ -30,6 +30,10 @@ Public Sub AddB4XSub(SubRoutine As B4XSub)
 	mB4XSubMap.Put(SubRoutine.Name, SubRoutine)
 End Sub
 
+Public Sub getB4XSub(SubName As String) As B4XSub
+	Return mB4XSubMap.Get(SubName)
+End Sub
+
 Public Sub ToString() As String
 	Dim Code As String
 	
