@@ -25,9 +25,8 @@ Public Sub GenerateB4XCode(ORMP As ORMProject) As Map
 	Next
 	
 	For Each Relation As ManyToManyRelation In ORMP.ManyToManyRelations
-		Dim LeftModel As B4XFile = FileMap.Get(Relation.LeftColumn.Name)
-		
-		Dim 		
+		Dim LeftModel As B4XFile = FileMap.Get(Relation.LeftColumn.ParentTable.Name)
+		LeftModel.AddB4XSub(GenerateRelationList(Relation.LeftColumn.ParentTable, Relation.RightColumn.ParentTable))
 	Next
 	Return FileMap
 End Sub
@@ -162,6 +161,15 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	Save.AddCodeLine($"dbCore.UpdateObject("${T.Name}", "${UniqueImmutableColumnName}", m${UniqueImmutableColumnName}, Array As String(${AllColumns}), Array As Object(${AllColumnValues}))"$)
 	TableModel.AddB4XSub(Save)
 	
+	Dim UpdateByMap As B4XSub
+	UpdateByMap.Initialize("Public", "UpdateByMap")
+	UpdateByMap.AddParameter("m As Map")
+	Dim UpdateByMapLoopCode As B4XCodeBlock
+	UpdateByMapLoopCode.Initialize($"CallSub2(Me, "set" & key, m.Get(key))"$)
+	Dim UpdateByMapLoop As B4XForEach
+	UpdateByMapLoop.Initialize("String", "m.Keys", UpdateByMapLoopCode)
+	UpdateByMap.AddCodeBlock(UpdateByMapLoop.ToCodeBlock)
+	
 	DBColumnMap.AddCodeLine("Return ColumnMap")
 	TableModel.AddB4XSub(DBColumnMap)
 	
@@ -188,6 +196,7 @@ Private Sub GenerateDBCore(Tables As List) As B4XFile
 	DBCore.AddB4XSub(GenerateDBCoreConvertMapValuesToList)
 	DBCore.AddB4XSub(GenerateDBCoreDeleteObject)
 	DBCore.AddB4XSub(GenerateDBCoreUpdateObject)
+	DBCore.AddB4XSub(GenerateDBCoreGetManyToManyList)
 	
 	Return DBCore
 End Sub
@@ -417,17 +426,21 @@ End Sub
 Private Sub GenerateDBCoreGetManyToManyList As B4XSub
 	Dim GetManyToManyListSub As B4XSub
 	GetManyToManyListSub.Initialize("Public", "GetManyToManyList")
-	GetManyToManyListSub.AddParameters(Array As String("LeftTableName As String", _
-	"LeftUniqueColumnName As String", "RelationTableName As String", "RelationLeftKey As String", _
-	"RelationRightKey As String", "RightTableName As String", "RightUniqueColumnName As String"))
+	GetManyToManyListSub.AddParameters(Array As String("LeftTableName As String", "RelationTableName As String", "RightTableName As String"))
 	GetManyToManyListSub.ReturnType = "List"
 	
 	GetManyToManyListSub.AddCodeLine("Dim RelationList As List")
 	GetManyToManyListSub.AddCodeLine("RelationList.Initialize")
-	GetManyToManyListSub.AddCodeLine($"Dim query As String = "SELECT " & RightTablerName & "." & RighttUniqueColumnName & " FROM " & LeftTableName & _"$)
-	GetManyToManyListSub.AddCodeLine($"" LEFT JOIN " & RelationTableName & " ON " & RightTableName & "." & RightUniqueColumnName & " = " & RelationTableName & "." & RelationRightKey & _"$)
-	GetManyToManyListSub.AddCodeLine($""$)
+	GetManyToManyListSub.AddCodeLine($"Dim query As String = "SELECT " & RightTableName & ".ID" & " FROM " & LeftTableName & " LEFT JOIN " & RelationTableName & " ON " & RightTableName & ".ID" & " = " & RelationTableName & "." & RightTableName & "ID" & " LEFT JOIN " & RelationTableName & " ON " & RelationTableName & "." & LeftTableName & "ID = " & LeftTableName & ".ID""$)
+	GetManyToManyListSub.AddCodeLine($"Dim RelationResult As ResultSet = db.ExecQuery(query)"$)
 	
+	GetManyToManyListSub.AddCodeLine("Do While RelationResult.NextRow")
+	GetManyToManyListSub.AddCodeLine($"RelationList.Add(GetObjectByUniqueColumnValue(RightTableName, "ID", RelationResult.GetString("ID")))"$)
+	GetManyToManyListSub.AddCodeLine("Loop")
+	
+	GetManyToManyListSub.AddCodeLine("Return RelationList")
+	
+	Return GetManyToManyListSub
 End Sub
 
 'Public Sub GetManyToManyList(LeftTableName As String, LeftUniqueColumnName As String, RelationTableName As String, RelationLeftKey As String, RelationRightKey As String, RightTableName As String, RightUniqueColumnName As String) As List
@@ -563,12 +576,14 @@ End Sub
 #End Region
 
 #Region RelationsCode
-Private Sub AddRelationList(LeftModelFile As B4XFile, LeftTable As Table,  RightTable As Table)
+Private Sub GenerateRelationList(LeftTable As Table, RightTable As Table) As B4XSub
 	Dim ListAllReferenceObjectSub As B4XSub
 	ListAllReferenceObjectSub.Initialize("Public", "get" & RightTable.Name & "List")
-	ListAllReferenceObjectSub(
+	ListAllReferenceObjectSub.ReturnType = "List"
+	ListAllReferenceObjectSub.AddCodeLine($"Return DBcore.GetManyToManyList("${LeftTable.Name}", "${LeftTable.Name}_${RightTable.Name}", "${RightTable.Name}")"$)
+	
+	Return ListAllReferenceObjectSub
 End Sub
-#End Region
 
 Private Sub GenerateVariable(Name As String, AccessModifier As String, VarType As String) As String
 	Return AccessModifier & " " & Name & " As " & VarType

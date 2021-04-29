@@ -114,8 +114,12 @@ Private Sub MapDatabaseColumnsToColumns(T As Table) As List
 	ColumnList.Initialize
 	Dim rs As ResultSet = sql.ExecQuery("PRAGMA table_info('" & T.Name & "')")
 
+	Dim isIDColumnPresent As Boolean
 	Do While rs.NextRow
 		Dim ColumnName As String = rs.GetString("name")
+		If ColumnName = "ID" Then
+			isIDColumnPresent = True
+		End If
 		Dim B4XType As String = MapDatabaseTypeToB4XType(rs.GetString("type"))
 		Dim ReferenceTable As String
 		Dim ReferenceColumn As String
@@ -128,6 +132,13 @@ Private Sub MapDatabaseColumnsToColumns(T As Table) As List
 		c.Initialize(ColumnName, rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn, Parser.IntToBoolean(rs.GetInt("notnull")), IsColumnUnique(T.Name, ColumnName), False, "", IsImmutable(T.Name, ColumnName), T)
 		ColumnList.Add(c)
 	Loop
+	
+	If isIDColumnPresent = False Then
+		Dim ex As ExceptionEx
+		ex.Initialize($"Table "${T.Name}" is missing a column named ID."$)
+		ex.Throw
+	End If
+	
 	Return ColumnList
 End Sub
 
