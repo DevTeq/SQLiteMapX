@@ -116,9 +116,13 @@ Private Sub MapDatabaseColumnsToColumns(T As Table) As List
 
 	Dim isIDColumnPresent As Boolean
 	Do While rs.NextRow
+		Dim IsGenerated As Boolean
+		Dim DefaultValue As String
 		Dim ColumnName As String = rs.GetString("name")
 		If ColumnName = "ID" Then
 			isIDColumnPresent = True
+			IsGenerated = True
+			DefaultValue = "Random.GenerateUUID"
 		End If
 		Dim B4XType As String = MapDatabaseTypeToB4XType(rs.GetString("type"))
 		Dim ReferenceTable As String
@@ -129,7 +133,7 @@ Private Sub MapDatabaseColumnsToColumns(T As Table) As List
 			ReferenceColumn = SplittedReference.Get(1)
 		End If
 		Dim c As Column
-		c.Initialize(ColumnName, rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn, Parser.IntToBoolean(rs.GetInt("notnull")), IsColumnUnique(T.Name, ColumnName), False, "", IsImmutable(T.Name, ColumnName), T)
+		c.Initialize(ColumnName, rs.GetString("type"), B4XType, ReferenceTable, ReferenceColumn, Parser.IntToBoolean(rs.GetInt("notnull")), IsColumnUnique(T.Name, ColumnName), IsGenerated, DefaultValue, IsImmutable(T.Name, ColumnName), T)
 		ColumnList.Add(c)
 	Loop
 	

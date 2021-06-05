@@ -108,11 +108,13 @@ Sub CreateListItem(c As Column) As B4XView
 	End If
 	chkIsMandatory.Checked = c.IsMandatory
 	chkGenerated.Checked = c.IsGenerated
+	txtDefaultValue.Text = c.DefaultValue
 	chkUnique.Checked = c.Unique
 	chkImmutable.Checked = c.IsImmutable
 	If chkImmutable.Checked Then
 		chkImmutable.Enabled = False
 	End If
+	
 	Return p
 End Sub
 

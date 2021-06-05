@@ -136,7 +136,11 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 			setColumn.Initialize("Public", "set" & c.Name)
 			If c.ReferenceTable <> "" Then
 				setColumn.AddParameter(c.Name & " As " & c.ReferenceTable)
-				setColumn.AddCodeLine("m" & c.Name & " = " & c.Name & "." & c.ReferenceColumn)
+				Dim IfNotNullCode As B4XCodeBlock
+				IfNotNullCode.Initialize("m" & c.Name & " = " & c.Name & "." & c.ReferenceColumn)
+				Dim IfNotNull As B4XIfStatement
+				IfNotNull.Initialize(Array As String(c.Name & " <> Null AND " & c.Name & ".IsInitialized"), Array As String(""), Array As String(""), Array As B4XCodeBlock(IfNotNullCode))
+				setColumn.AddCodeBlock(IfNotNull.ToCodeBlock)
 			Else
 				setColumn.AddParameter(c.Name & " As " & c.B4XType)
 				setColumn.AddCodeLine("m" & c.Name & " = " & c.Name)
@@ -148,9 +152,12 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		If c.Unique And c.IsImmutable Then
 			UniqueImmutableColumnName = c.Name
 		End If
-	
-		init.AddCodeLine("m" & c.Name & " = " & c.Name)
-		init.AddParameter(c.Name & " As " & c.B4XType)		
+		
+		If c.IsMandatory Then
+			init.AddCodeLine("m" & c.Name & " = " & c.Name)
+			init.AddParameter(c.Name & " As " & c.B4XType)
+		End If
+			
 	Next
 	
 	AllColumns = AllColumns.SubString2(0, AllColumns.Length - 2)
@@ -165,10 +172,11 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	UpdateByMap.Initialize("Public", "UpdateByMap")
 	UpdateByMap.AddParameter("m As Map")
 	Dim UpdateByMapLoopCode As B4XCodeBlock
-	UpdateByMapLoopCode.Initialize($"CallSub2(Me, "set" & key, m.Get(key))"$)
+	UpdateByMapLoopCode.Initialize($"CallSub2(Me, "set" & value, m.Get(value))"$)
 	Dim UpdateByMapLoop As B4XForEach
 	UpdateByMapLoop.Initialize("String", "m.Keys", UpdateByMapLoopCode)
 	UpdateByMap.AddCodeBlock(UpdateByMapLoop.ToCodeBlock)
+	TableModel.AddB4XSub(UpdateByMap)
 	
 	DBColumnMap.AddCodeLine("Return ColumnMap")
 	TableModel.AddB4XSub(DBColumnMap)
@@ -234,10 +242,21 @@ Private Sub GenerateDBCoreParseResultToObjects(Tables As List) As B4XSub
 		ConversionBlock.Initialize(GenerateVariable("new" & t.Name, "Dim", t.Name))
 		Dim InitString As String
 		For Each c As Column In t.Columns
-			InitString = InitString & "Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & "), "
+			If c.IsMandatory Then
+				InitString = InitString & "Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & "), "
+			End If
 		Next
 		InitString = InitString.SubString2(0, InitString.Length -2)
 		ConversionBlock.AddCodeLine("new" & t.Name & ".Initialize(" & InitString & ")")
+		For Each c As Column In t.Columns
+			If c.IsMandatory = False Then
+				If c.ReferenceTable <> "" Then
+					ConversionBlock.AddCodeLine("new" & t.Name & "." & c.Name & " = " & t.Name & "Manager.GetByID(Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & "))")
+				Else
+					ConversionBlock.AddCodeLine("new" & t.Name & "." & c.Name & " = Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & ")")
+				End If
+			End If
+		Next
 		ConversionBlock.AddCodeLine("ParsedObjects.Add(new" & t.Name & ")")
 		SelectCodeBlocks.Add(ConversionBlock)
 	Next
@@ -292,6 +311,7 @@ Private Sub GenerateDBCoreGetObjectByUniqueColumnValue As B4XSub
 	IfCodeblock.Initialize(Array As String("ObjectList.Size"), Array As String(">"), Array As String("0"), Array As B4XCodeBlock(ObjectFoundCode))
 	GetObjectByUniqueColumnValueSub.AddCodeBlock(IfCodeblock.ToCodeBlock)
 	
+	GetObjectByUniqueColumnValueSub.AddCodeLine("Return Null")
 	Return GetObjectByUniqueColumnValueSub
 End Sub
 
@@ -426,14 +446,13 @@ End Sub
 Private Sub GenerateDBCoreGetManyToManyList As B4XSub
 	Dim GetManyToManyListSub As B4XSub
 	GetManyToManyListSub.Initialize("Public", "GetManyToManyList")
-	GetManyToManyListSub.AddParameters(Array As String("LeftTableName As String", "RelationTableName As String", "RightTableName As String"))
+	GetManyToManyListSub.AddParameters(Array As String("LeftTableName As String", "LeftTableID As String", "RelationTableName As String", "RightTableName As String"))
 	GetManyToManyListSub.ReturnType = "List"
 	
 	GetManyToManyListSub.AddCodeLine("Dim RelationList As List")
 	GetManyToManyListSub.AddCodeLine("RelationList.Initialize")
-	GetManyToManyListSub.AddCodeLine($"Dim query As String = "SELECT " & RightTableName & ".ID" & " FROM " & LeftTableName & " LEFT JOIN " & RelationTableName & " ON " & RightTableName & ".ID" & " = " & RelationTableName & "." & RightTableName & "ID" & " LEFT JOIN " & RelationTableName & " ON " & RelationTableName & "." & LeftTableName & "ID = " & LeftTableName & ".ID""$)
-	GetManyToManyListSub.AddCodeLine($"Dim RelationResult As ResultSet = db.ExecQuery(query)"$)
-	
+	GetManyToManyListSub.AddCodeLine($"Dim query As String = "SELECT " & RightTableName & ".ID" & " FROM " & RightTableName & " LEFT JOIN " & RelationTableName & " ON " & RightTableName & ".ID" & " = " & RelationTableName & "." & RightTableName & "ID" & " LEFT JOIN " & LeftTableName & " ON " & RelationTableName & "." & LeftTableName & "ID = " & LeftTableName & ".ID WHERE " & LeftTableName & ".ID = ?""$)
+	GetManyToManyListSub.AddCodeLine($"Dim RelationResult As ResultSet = db.ExecQuery2(query, Array As String(LeftTableID))"$)
 	GetManyToManyListSub.AddCodeLine("Do While RelationResult.NextRow")
 	GetManyToManyListSub.AddCodeLine($"RelationList.Add(GetObjectByUniqueColumnValue(RightTableName, "ID", RelationResult.GetString("ID")))"$)
 	GetManyToManyListSub.AddCodeLine("Loop")
@@ -442,6 +461,11 @@ Private Sub GenerateDBCoreGetManyToManyList As B4XSub
 	
 	Return GetManyToManyListSub
 End Sub
+
+'Select ApiPermission.ID FROM ApiPermission 
+'LEFT JOIN UserGroup_ApiPermission ON UserGroup_ApiPermission.ApiPermissionID = ApiPermission.ID
+'LEFT JOIN UserGroup ON UserGroup_ApiPermission.UserGroupID = UserGroup.ID
+'WHERE UserGroup.ID = "6a59ea61-e700-03fc-0bbd-8ab73f315e48"
 
 'Public Sub GetManyToManyList(LeftTableName As String, LeftUniqueColumnName As String, RelationTableName As String, RelationLeftKey As String, RelationRightKey As String, RightTableName As String, RightUniqueColumnName As String) As List
 '	Dim RelationList As List
@@ -509,11 +533,13 @@ Private Sub GenerateB4XManagerAddSub(T As Table) As B4XSub
 				
 			End If			
 		Else
-			If C.B4XType = "string" Then
-				InitStringParameters = InitStringParameters & Chr(34) & C.DefaultValue & Chr(34) & ", "
-			Else
-				InitStringParameters = InitStringParameters & C.DefaultValue & ", "
-			End If		
+			If C.DefaultValue <> "" Then
+				If C.B4XType = "string" Then
+					InitStringParameters = InitStringParameters & Chr(34) & C.DefaultValue & Chr(34) & ", "
+				Else
+					InitStringParameters = InitStringParameters & C.DefaultValue & ", "
+				End If
+			End If
 		End If
 	Next
 	
@@ -558,9 +584,10 @@ Private Sub GenerateB4XManagerGetByUniqueColumn(TableName As String, UniqueColum
 	ifCodeToExecute.Initialize("Return New" & TableName)
 	
 	Dim ifBlock As B4XIfStatement
-	ifBlock.Initialize(Array As String("New" & TableName & ".IsInitialized"), Array As String(""), Array As String(""), Array As B4XCodeBlock(ifCodeToExecute))
+	ifBlock.Initialize(Array As String("New" & TableName & " <> Null AND New" & TableName & ".IsInitialized"), Array As String(""), Array As String(""), Array As B4XCodeBlock(ifCodeToExecute))
 	GetByUniqueColumn.AddCodeBlock(ifBlock.ToCodeBlock)
 	
+	GetByUniqueColumn.AddCodeLine("Return Null")
 	Return GetByUniqueColumn
 End Sub
 
@@ -580,7 +607,7 @@ Private Sub GenerateRelationList(LeftTable As Table, RightTable As Table) As B4X
 	Dim ListAllReferenceObjectSub As B4XSub
 	ListAllReferenceObjectSub.Initialize("Public", "get" & RightTable.Name & "List")
 	ListAllReferenceObjectSub.ReturnType = "List"
-	ListAllReferenceObjectSub.AddCodeLine($"Return DBcore.GetManyToManyList("${LeftTable.Name}", "${LeftTable.Name}_${RightTable.Name}", "${RightTable.Name}")"$)
+	ListAllReferenceObjectSub.AddCodeLine($"Return DBcore.GetManyToManyList("${LeftTable.Name}", mID, "${LeftTable.Name}_${RightTable.Name}", "${RightTable.Name}")"$)
 	
 	Return ListAllReferenceObjectSub
 End Sub
@@ -588,3 +615,4 @@ End Sub
 Private Sub GenerateVariable(Name As String, AccessModifier As String, VarType As String) As String
 	Return AccessModifier & " " & Name & " As " & VarType
 End Sub
+#End Region
