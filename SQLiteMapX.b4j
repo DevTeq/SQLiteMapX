@@ -30,7 +30,7 @@ Module9=Column
 NumberOfFiles=2
 NumberOfLibraries=8
 NumberOfModules=14
-Version=8.9
+Version=9
 @EndOfDesignText@
 #Region Project Attributes 
 	#MainFormWidth: 600

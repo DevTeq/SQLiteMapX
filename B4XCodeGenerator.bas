@@ -461,27 +461,6 @@ Private Sub GenerateDBCoreGetManyToManyList As B4XSub
 	
 	Return GetManyToManyListSub
 End Sub
-
-'Select ApiPermission.ID FROM ApiPermission 
-'LEFT JOIN UserGroup_ApiPermission ON UserGroup_ApiPermission.ApiPermissionID = ApiPermission.ID
-'LEFT JOIN UserGroup ON UserGroup_ApiPermission.UserGroupID = UserGroup.ID
-'WHERE UserGroup.ID = "6a59ea61-e700-03fc-0bbd-8ab73f315e48"
-
-'Public Sub GetManyToManyList(LeftTableName As String, LeftUniqueColumnName As String, RelationTableName As String, RelationLeftKey As String, RelationRightKey As String, RightTableName As String, RightUniqueColumnName As String) As List
-'	Dim RelationList As List
-'	RelationList.Initialize
-'	Dim query As String = $"SELECT ${RightTableName}.${RightUniqueColumnName} FROM ${LeftTableName}
-'	LEFT JOIN ${RelationTableName} ON ${RightTableName}.${RightUniqueColumnName} = ${RelationTableName}.${RelationRightKey}
-'	LEFT JOIN ${LeftTableName} ON ${RelationTableName}.${RelationLeftKey} = ${LeftTableName}.${LeftUniqueColumnName}"$
-'	
-'	Dim RelationResult As ResultSet = db.ExecQuery(query)
-'	
-'	Do While RelationResult.NextRow
-'		RelationList.Add(GetObjectByUniqueColumnValue(RightTableName, RightUniqueColumnName, RelationResult.GetString(RightUniqueColumnName)))
-'	Loop
-'	
-'	Return RelationList
-'End Sub
 #End Region
 
 #Region GenerateManagerFile
