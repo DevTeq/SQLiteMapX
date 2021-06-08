@@ -496,6 +496,8 @@ End Sub
 Private Sub GenerateB4XManagerAddSub(T As Table) As B4XSub
 	Dim AddSub As B4XSub
 	AddSub.Initialize("Public", "Add" & T.Name)
+	AddSub.ReturnType = T.Name
+	
 	Dim InitStringParameters As String
 	For Each C As Column In T.Columns
 		If C.IsMandatory Then
@@ -525,6 +527,7 @@ Private Sub GenerateB4XManagerAddSub(T As Table) As B4XSub
 	AddSub.AddCodeLine(GenerateVariable("NewObject", "Dim", T.Name))
 	AddSub.AddCodeLine("NewObject.Initialize(" & InitStringParameters.SubString2(0, InitStringParameters.Length  - 2) & ")")
 	AddSub.AddCodeLine("dbCore.InsertObjectInDatabase(NewObject)")
+	AddSub.AddCodeLine("Return NewObject")
 	
 	Return AddSub
 End Sub
