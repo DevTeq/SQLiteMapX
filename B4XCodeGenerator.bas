@@ -187,7 +187,7 @@ End Sub
 #Region GenerateDBCoreCode
 Private Sub GenerateDBCore(Tables As List) As B4XFile
 	Dim DBCore As B4XFile
-	DBCore.Initialize("DBCore", False)
+	DBCore.Initialize("dbCore", False)
 	
 	Dim PGlobals As B4XSub
 	PGlobals.Initialize("Public", "Process_Globals")
