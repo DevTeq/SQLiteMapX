@@ -110,18 +110,23 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		AllColumns = AllColumns & Chr(34) & c.Name & Chr(34) & ", "
 		AllColumnValues = AllColumnValues & "m" & c.Name & ", "
 		PGlobals.AddCodeLine(GenerateVariable("m" & c.Name, "Private", c.B4XType))
-		DBColumnMap.AddCodeLine("ColumnMap.Put(" & Chr(34) & c.Name & Chr(34) & ", m" & c.Name & ")")
+		If c.IsMandatory = False Then
+			Dim isVariableNullTrue As B4XCodeBlock
+			isVariableNullTrue.Initialize("ColumnMap.Put(" & Chr(34) & c.Name & Chr(34) & ", Null)")
+			Dim isVariableNullFalse As B4XCodeBlock
+			isVariableNullFalse.Initialize("ColumnMap.Put(" & Chr(34) & c.Name & Chr(34) & ", m" & c.Name & ")")
+			PGlobals.AddCodeLine(GenerateVariable("mIs" & c.Name & "Null", "Private", "Boolean = True"))
+			Dim ifVariableIsNull As B4XIfStatement
+			ifVariableIsNull.Initialize(Array As String("mIs" & c.Name & "Null", "mIs" & c.Name & "Null"), Array As String("=", "="), Array As String("True", "False"), Array As B4XCodeBlock(isVariableNullTrue, isVariableNullFalse))
+			DBColumnMap.AddCodeBlock(ifVariableIsNull.ToCodeBlock)
+		Else
+			DBColumnMap.AddCodeLine("ColumnMap.Put(" & Chr(34) & c.Name & Chr(34) & ", m" & c.Name & ")")
+		End If
 		
 		Dim getColumn As B4XSub
 		getColumn.Initialize("Public","get" & c.Name)
 		getColumn.ReturnType = c.B4XType
-		If c.ReferenceTable <> "" Then
-			getColumn.ReturnType = c.ReferenceTable
-			getColumn.AddCodeLine($"Return ${c.ReferenceTable}Manager.GetBy${c.ReferenceColumn}(m${c.Name})"$)
-		Else
-			getColumn.ReturnType = c.B4XType
-			getColumn.AddCodeLine("Return m" & c.Name)
-		End If
+		getColumn.AddCodeLine("Return m" & c.Name)
 		TableModel.AddB4XSub(getColumn)
 		
 		If c.IsGenerated And c.IsImmutable = False Then
@@ -134,17 +139,9 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 		If c.IsGenerated = False Or c.IsImmutable Then
 			Dim setColumn As B4XSub
 			setColumn.Initialize("Public", "set" & c.Name)
-			If c.ReferenceTable <> "" Then
-				setColumn.AddParameter(c.Name & " As " & c.ReferenceTable)
-				Dim IfNotNullCode As B4XCodeBlock
-				IfNotNullCode.Initialize("m" & c.Name & " = " & c.Name & "." & c.ReferenceColumn)
-				Dim IfNotNull As B4XIfStatement
-				IfNotNull.Initialize(Array As String(c.Name & " <> Null AND " & c.Name & ".IsInitialized"), Array As String(""), Array As String(""), Array As B4XCodeBlock(IfNotNullCode))
-				setColumn.AddCodeBlock(IfNotNull.ToCodeBlock)
-			Else
-				setColumn.AddParameter(c.Name & " As " & c.B4XType)
-				setColumn.AddCodeLine("m" & c.Name & " = " & c.Name)
-			End If
+			setColumn.AddParameter(c.Name & " As " & c.B4XType)
+			setColumn.AddCodeLine("m" & c.Name & " = " & c.Name)
+			If c.IsMandatory = False Then setColumn.AddCodeLine("mIs" & c.Name & "Null = False")
 			
 			TableModel.AddB4XSub(setColumn)
 		End If
@@ -250,11 +247,7 @@ Private Sub GenerateDBCoreParseResultToObjects(Tables As List) As B4XSub
 		ConversionBlock.AddCodeLine("new" & t.Name & ".Initialize(" & InitString & ")")
 		For Each c As Column In t.Columns
 			If c.IsMandatory = False Then
-				If c.ReferenceTable <> "" Then
-					ConversionBlock.AddCodeLine("new" & t.Name & "." & c.Name & " = " & t.Name & "Manager.GetByID(Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & "))")
-				Else
-					ConversionBlock.AddCodeLine("new" & t.Name & "." & c.Name & " = Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & ")")
-				End If
+				ConversionBlock.AddCodeLine("new" & t.Name & "." & c.Name & " = Result.Get" & c.B4XType & "(" & Chr(34) & c.Name & Chr(34) & ")")
 			End If
 		Next
 		ConversionBlock.AddCodeLine("ParsedObjects.Add(new" & t.Name & ")")
@@ -372,7 +365,7 @@ Private Sub GenerateDBCoreIsObjectValueAvailable As B4XSub
 	IsObjectValueAvailableSub.AddParameters(Array As String("TableName As String", "ColumnName As String", "Value As Object"))
 	IsObjectValueAvailableSub.ReturnType = "Boolean"
 	
-	IsObjectValueAvailableSub.AddCodeLine($"Return db.ExecQuery2("SELECT * FROM " & tableName & " WHERE " & columnName & " = ?", Array As Object(value)).NextRow"$)
+	IsObjectValueAvailableSub.AddCodeLine($"Return Not(db.ExecQuery2("SELECT * FROM " & tableName & " WHERE " & columnName & " = ?", Array As Object(value)).NextRow)"$)
 	
 	Return IsObjectValueAvailableSub
 End Sub
@@ -424,7 +417,7 @@ Private Sub GenerateDBCoreUpdateObject As B4XSub
 	Dim UpdateObject As B4XSub
 	UpdateObject.Initialize("Public", "UpdateObject")
 	UpdateObject.AddParameters(Array As String("Tablename As String", "UniqueColumn As String", "UniqueValue As String", "ColumnNames As List", "Values As List"))
-	UpdateObject.AddCodeLine($"Dim Query As String = "UPDATE " & UniqueColumn & " SET ""$)
+	UpdateObject.AddCodeLine($"Dim Query As String = "UPDATE " & Tablename & " SET ""$)
 	
 	Dim LoopCode As B4XCodeBlock
 	LoopCode.Initialize($"Query = Query & Value & " = ?, ""$)
