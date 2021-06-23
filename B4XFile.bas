@@ -9,9 +9,9 @@ Sub Class_Globals
 	Private mIsClass As Boolean
 	Private mB4XSubMap As Map
 	Private mGroup As String = "ORM"
+	Private mTextCode As String
 End Sub
 
-'Initializes the object. You can add parameters to this method if needed.
 Public Sub Initialize(Name As String, IsClass As Boolean)
 	mB4XSubMap.Initialize
 	mName = Name
@@ -34,6 +34,10 @@ Public Sub getB4XSub(SubName As String) As B4XSub
 	Return mB4XSubMap.Get(SubName)
 End Sub
 
+Public Sub setTextCode(Code As String)
+	mTextCode = Code
+End Sub
+
 Public Sub ToString() As String
 	Dim Code As String
 	
@@ -44,7 +48,7 @@ Public Sub ToString() As String
 		Code = Code & subroutine.ToString
 	Next
 	
-	Code = GenerateHeader & Code
+	Code = GenerateHeader & Code & CRLF & CRLF & mTextCode
 	
 	Return Code
 End Sub

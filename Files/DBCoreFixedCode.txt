@@ -1,0 +1,72 @@
+Public Sub Process_Globals()
+	Private db As SQL
+End Sub
+
+Public Sub Initialize(DatabasePath As String)
+	If db.IsInitialized = False Then
+		db.InitializeSQLite(File.GetFileParent(DatabasePath), File.GetName(DatabasePath), False)
+	End If
+End Sub
+
+Public Sub DoesItemExist(TableName As String, ColumnName As String, Value As Object) As Boolean
+	Return db.ExecQuery2("SELECT * FROM " & TableName & " WHERE " & ColumnName & " = ?", Array As Object(Value)).NextRow
+End Sub
+
+Public Sub GetObjectByUniqueColumnValue(TableName As String, ColumnName As String, Value As Object) As Object
+	Dim Result As ResultSet
+	Result = db.ExecQuery2("SELECT * FROM " & TableName & " WHERE " & ColumnName & " = ?", Array As Object(Value))
+	Dim ObjectList As List
+	ObjectList = ParseResultToObjects(Result, TableName)
+	If ObjectList.Size > 0 Then
+		Return ObjectList.Get(0)
+	End If
+	Return Null
+End Sub
+
+Public Sub IsObjectValueAvailable(TableName As String, ColumnName As String, Value As Object) As Boolean
+	Return Not(db.ExecQuery2("SELECT * FROM " & TableName & " WHERE " & ColumnName & " = ?", Array As Object(Value)).NextRow)
+End Sub
+
+Public Sub ListAllObjects(TableName As String) As List
+	Dim Result As ResultSet = db.ExecQuery("SELECT * FROM " & TableName)
+	Dim Objects As List = ParseResultToObjects(Result, TableName)
+	Return Objects
+End Sub
+
+Private Sub ConvertMapValuesToList(m As Map) As List
+	Dim lst As List
+	lst.Initialize
+	For Each Value As Object In m.Values
+		lst.Add(Value)
+	Next
+	Return lst
+End Sub
+
+Public Sub DeleteObject(Tablename As String, ColumnName As String, Value As Object)
+	db.ExecNonQuery2("DELETE FROM " & Tablename & " WHERE " & ColumnName &  " = ?", Array As Object(Value))
+End Sub
+
+Public Sub UpdateObject(Tablename As String, UniqueColumn As String, UniqueValue As String, ColumnNames As List, Values As List)
+	Dim Query As String = "UPDATE " & Tablename & " SET "
+	For Each Value As String In ColumnNames
+		Query = Query & Value & " = ?, "
+	Next
+	Query = Query.SubString2(0, Query.Length - 2)
+	Query = Query & " WHERE " & UniqueColumn & " = ?"
+	Dim newValues As List
+	newValues.Initialize
+	newValues.AddAll(Values)
+	newValues.Add(UniqueValue)
+	db.ExecNonQuery2(Query, newValues)
+End Sub
+
+Public Sub GetManyToManyList(LeftTableName As String, LeftTableID As String, RelationTableName As String, RightTableName As String) As List
+	Dim RelationList As List
+	RelationList.Initialize
+	Dim query As String = "SELECT " & RightTableName & ".ID" & " FROM " & RightTableName & " LEFT JOIN " & RelationTableName & " ON " & RightTableName & ".ID" & " = " & RelationTableName & "." & RightTableName & "ID" & " LEFT JOIN " & LeftTableName & " ON " & RelationTableName & "." & LeftTableName & "ID = " & LeftTableName & ".ID WHERE " & LeftTableName & ".ID = ?"
+	Dim RelationResult As ResultSet = db.ExecQuery2(query, Array As String(LeftTableID))
+	Do While RelationResult.NextRow
+	RelationList.Add(GetObjectByUniqueColumnValue(RightTableName, "ID", RelationResult.GetString("ID")))
+	Loop
+	Return RelationList
+End Sub

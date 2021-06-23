@@ -186,22 +186,9 @@ Private Sub GenerateDBCore(Tables As List) As B4XFile
 	Dim DBCore As B4XFile
 	DBCore.Initialize("dbCore", False)
 	
-	Dim PGlobals As B4XSub
-	PGlobals.Initialize("Public", "Process_Globals")
-	PGlobals.AddCodeLine(GenerateVariable("db", "Private", "SQL"))
-	DBCore.AddB4XSub(PGlobals)
-	
-	DBCore.AddB4XSub(GenerateDBCoreInit)
 	DBCore.AddB4XSub(GenerateDBCoreParseResultToObjects(Tables))
-	DBCore.AddB4XSub(GenerateDBCoreDoesItemExists)
-	DBCore.AddB4XSub(GenerateDBCoreGetObjectByUniqueColumnValue)
 	DBCore.AddB4XSub(GenerateDBCoreInsertObjectInDatabase(Tables))
-	DBCore.AddB4XSub(GenerateDBCoreIsObjectValueAvailable)
-	DBCore.AddB4XSub(GenerateDBCoreListAllObjects)
-	DBCore.AddB4XSub(GenerateDBCoreConvertMapValuesToList)
-	DBCore.AddB4XSub(GenerateDBCoreDeleteObject)
-	DBCore.AddB4XSub(GenerateDBCoreUpdateObject)
-	DBCore.AddB4XSub(GenerateDBCoreGetManyToManyList)
+	DBCore.TextCode = File.ReadString(File.DirAssets, "DBCoreFixedCode.txt")
 	
 	Return DBCore
 End Sub
