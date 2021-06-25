@@ -48,7 +48,7 @@ Public Sub ToString() As String
 		Code = Code & subroutine.ToString
 	Next
 	
-	Code = GenerateHeader & Code & CRLF & CRLF & mTextCode
+	Code = GenerateHeader & mTextCode & CRLF & Code
 	
 	Return Code
 End Sub

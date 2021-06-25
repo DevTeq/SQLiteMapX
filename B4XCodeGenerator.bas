@@ -186,24 +186,11 @@ Private Sub GenerateDBCore(Tables As List) As B4XFile
 	Dim DBCore As B4XFile
 	DBCore.Initialize("dbCore", False)
 	
+	DBCore.TextCode = File.ReadString(File.DirAssets, "DBCoreFixedCode.txt")
 	DBCore.AddB4XSub(GenerateDBCoreParseResultToObjects(Tables))
 	DBCore.AddB4XSub(GenerateDBCoreInsertObjectInDatabase(Tables))
-	DBCore.TextCode = File.ReadString(File.DirAssets, "DBCoreFixedCode.txt")
 	
 	Return DBCore
-End Sub
-
-Private Sub GenerateDBCoreInit() As B4XSub
-	Dim Init As B4XSub
-	Init.Initialize("Public", "Initialize")
-	Init.AddParameter("DatabasePath As String")
-	
-	Dim InitIfCode As B4XCodeBlock
-	InitIfCode.Initialize("db.InitializeSQLite(File.GetFileParent(DatabasePath), File.GetName(DatabasePath), False)")
-	Dim InitIf As B4XIfStatement
-	InitIf.Initialize(Array As String("db.IsInitialized"), Array As String("="), Array As String("False"), Array As B4XCodeBlock(InitIfCode))
-	Init.AddCodeBlock(InitIf.ToCodeBlock)
-	Return Init
 End Sub
 
 Private Sub GenerateDBCoreParseResultToObjects(Tables As List) As B4XSub
@@ -260,41 +247,6 @@ Private Sub GenerateDBCoreParseResultToObjects(Tables As List) As B4XSub
 	Return ParseResultToObjects
 End Sub
 
-Private Sub GenerateDBCoreDoesItemExists As B4XSub
-	Dim ItemExistsSub As B4XSub
-	ItemExistsSub.Initialize("Public", "DoesItemExist")
-	ItemExistsSub.AddParameters(Array As String("TableName As String", "ColumnName As String", "Value As Object"))
-	ItemExistsSub.ReturnType = "Boolean"
-	
-	ItemExistsSub.AddCodeLine($"Return db.ExecQuery2("SELECT * FROM " & tableName & " WHERE " & columnName & " = ?", Array As Object(value)).NextRow"$)
-	
-	Return ItemExistsSub
-End Sub
-
-Private Sub GenerateDBCoreGetObjectByUniqueColumnValue As B4XSub
-	Dim GetObjectByUniqueColumnValueSub As B4XSub
-	GetObjectByUniqueColumnValueSub.Initialize("Public", "GetObjectByUniqueColumnValue")
-	GetObjectByUniqueColumnValueSub.AddParameters(Array As String("TableName As String", "ColumnName As String", "Value As Object"))
-	GetObjectByUniqueColumnValueSub.ReturnType = "Object"
-	
-	Dim SetupVariablesBlock As B4XCodeBlock
-	SetupVariablesBlock.Initialize(GenerateVariable("Result", "Dim", "ResultSet"))
-	SetupVariablesBlock.AddCodeLine($"Result = db.ExecQuery2("SELECT * FROM " & TableName & " WHERE " & ColumnName & " = ?", Array As Object(Value))"$)
-	SetupVariablesBlock.AddCodeLine(GenerateVariable("ObjectList", "Dim", "List"))
-	SetupVariablesBlock.AddCodeLine("ObjectList = ParseResultToObjects(Result, TableName)")
-	GetObjectByUniqueColumnValueSub.AddCodeBlock(SetupVariablesBlock)
-	
-	Dim ObjectFoundCode As B4XCodeBlock
-	ObjectFoundCode.Initialize("Return ObjectList.Get(0)")
-	
-	Dim IfCodeblock As B4XIfStatement
-	IfCodeblock.Initialize(Array As String("ObjectList.Size"), Array As String(">"), Array As String("0"), Array As B4XCodeBlock(ObjectFoundCode))
-	GetObjectByUniqueColumnValueSub.AddCodeBlock(IfCodeblock.ToCodeBlock)
-	
-	GetObjectByUniqueColumnValueSub.AddCodeLine("Return Null")
-	Return GetObjectByUniqueColumnValueSub
-End Sub
-
 Private Sub GenerateDBCoreInsertObjectInDatabase(Tables As List) As B4XSub
 	Dim InsertObjectInDatabaseSub As B4XSub
 	InsertObjectInDatabaseSub.Initialize("Public", "InsertObjectInDatabase")
@@ -346,101 +298,6 @@ Private Sub GenerateDBCoreInsertObjectInDatabase(Tables As List) As B4XSub
 	Return InsertObjectInDatabaseSub
 End Sub
 
-Private Sub GenerateDBCoreIsObjectValueAvailable As B4XSub
-	Dim IsObjectValueAvailableSub As B4XSub
-	IsObjectValueAvailableSub.Initialize("Public", "IsObjectValueAvailable")
-	IsObjectValueAvailableSub.AddParameters(Array As String("TableName As String", "ColumnName As String", "Value As Object"))
-	IsObjectValueAvailableSub.ReturnType = "Boolean"
-	
-	IsObjectValueAvailableSub.AddCodeLine($"Return Not(db.ExecQuery2("SELECT * FROM " & tableName & " WHERE " & columnName & " = ?", Array As Object(value)).NextRow)"$)
-	
-	Return IsObjectValueAvailableSub
-End Sub
-
-Private Sub GenerateDBCoreListAllObjects As B4XSub
-	Dim ListAllObjectsSub As B4XSub
-	ListAllObjectsSub.Initialize("Public", "ListAllObjects")
-	ListAllObjectsSub.AddParameter("TableName As String")
-	ListAllObjectsSub.ReturnType = "List"
-	
-	ListAllObjectsSub.AddCodeLine(GenerateVariable("Result", "Dim", "ResultSet") & $" = db.ExecQuery("SELECT * FROM " & TableName)"$)
-	ListAllObjectsSub.AddCodeLine(GenerateVariable("Objects", "Dim", "List") & $" = ParseResultToObjects(Result, Tablename)"$)
-	ListAllObjectsSub.AddCodeLine("Return Objects")
-	
-	Return ListAllObjectsSub
-End Sub
-
-Private Sub GenerateDBCoreConvertMapValuesToList() As B4XSub
-	Dim ConvertMapValuesToList As B4XSub
-	ConvertMapValuesToList.Initialize("Private", "ConvertMapValuesToList")
-	ConvertMapValuesToList.AddParameter("m As Map")
-	ConvertMapValuesToList.ReturnType = "List"
-	
-	ConvertMapValuesToList.AddCodeLine(GenerateVariable("lst", "Dim", "List"))
-	ConvertMapValuesToList.AddCodeLine("lst.Initialize")
-	
-	Dim LoopCode As B4XCodeBlock
-	LoopCode.Initialize("lst.Add(Value)")
-	Dim MapLooper As B4XForEach
-	MapLooper.Initialize("Object", "m.Values", LoopCode)
-	ConvertMapValuesToList.AddCodeBlock(MapLooper.ToCodeBlock)
-	
-	ConvertMapValuesToList.AddCodeLine("Return lst")
-	
-	Return ConvertMapValuesToList
-End Sub
-
-Private Sub GenerateDBCoreDeleteObject As B4XSub
-	Dim DeleteSub As B4XSub
-	DeleteSub.Initialize("Public", "DeleteObject")
-	DeleteSub.AddParameters(Array As String("Tablename As String", "ColumnName As String", "Value As Object"))
-	
-	DeleteSub.AddCodeLine($"db.ExecNonQuery2("DELETE FROM " & Tablename & " WHERE " & ColumnName &  " = ?", Array As Object(Value))"$)
-	
-	Return DeleteSub
-End Sub
-
-Private Sub GenerateDBCoreUpdateObject As B4XSub
-	Dim UpdateObject As B4XSub
-	UpdateObject.Initialize("Public", "UpdateObject")
-	UpdateObject.AddParameters(Array As String("Tablename As String", "UniqueColumn As String", "UniqueValue As String", "ColumnNames As List", "Values As List"))
-	UpdateObject.AddCodeLine($"Dim Query As String = "UPDATE " & Tablename & " SET ""$)
-	
-	Dim LoopCode As B4XCodeBlock
-	LoopCode.Initialize($"Query = Query & Value & " = ?, ""$)
-	Dim ColumnLooper As B4XForEach
-	ColumnLooper.Initialize("String", "ColumnNames", LoopCode)
-	UpdateObject.AddCodeBlock(ColumnLooper.ToCodeBlock)
-	
-	UpdateObject.AddCodeLine($"Query = Query.SubString2(0, Query.Length - 2)"$)
-	UpdateObject.AddCodeLine($"Query = Query & " WHERE " & UniqueColumn & " = ?""$)
-	UpdateObject.AddCodeLine("Dim newValues As List")
-	UpdateObject.AddCodeLine("newValues.Initialize")
-	UpdateObject.AddCodeLine("NewValues.AddAll(Values)")
-	UpdateObject.AddCodeLine("NewValues.Add(UniqueValue)")
-	UpdateObject.AddCodeLine("db.ExecNonQuery2(Query, NewValues)")
-	
-	Return UpdateObject
-End Sub
-
-Private Sub GenerateDBCoreGetManyToManyList As B4XSub
-	Dim GetManyToManyListSub As B4XSub
-	GetManyToManyListSub.Initialize("Public", "GetManyToManyList")
-	GetManyToManyListSub.AddParameters(Array As String("LeftTableName As String", "LeftTableID As String", "RelationTableName As String", "RightTableName As String"))
-	GetManyToManyListSub.ReturnType = "List"
-	
-	GetManyToManyListSub.AddCodeLine("Dim RelationList As List")
-	GetManyToManyListSub.AddCodeLine("RelationList.Initialize")
-	GetManyToManyListSub.AddCodeLine($"Dim query As String = "SELECT " & RightTableName & ".ID" & " FROM " & RightTableName & " LEFT JOIN " & RelationTableName & " ON " & RightTableName & ".ID" & " = " & RelationTableName & "." & RightTableName & "ID" & " LEFT JOIN " & LeftTableName & " ON " & RelationTableName & "." & LeftTableName & "ID = " & LeftTableName & ".ID WHERE " & LeftTableName & ".ID = ?""$)
-	GetManyToManyListSub.AddCodeLine($"Dim RelationResult As ResultSet = db.ExecQuery2(query, Array As String(LeftTableID))"$)
-	GetManyToManyListSub.AddCodeLine("Do While RelationResult.NextRow")
-	GetManyToManyListSub.AddCodeLine($"RelationList.Add(GetObjectByUniqueColumnValue(RightTableName, "ID", RelationResult.GetString("ID")))"$)
-	GetManyToManyListSub.AddCodeLine("Loop")
-	
-	GetManyToManyListSub.AddCodeLine("Return RelationList")
-	
-	Return GetManyToManyListSub
-End Sub
 #End Region
 
 #Region GenerateManagerFile
@@ -469,6 +326,7 @@ Private Sub GenerateB4XManagerFromTable(T As Table) As B4XFile
 	Next
 	
 	ManagerFile.AddB4XSub(GenerateB4XManagerListAll(T.Name))
+	ManagerFile.AddB4XSub(GenerateB4XManagerGetWhere(T.Name))
 	
 	Return ManagerFile
 End Sub
@@ -561,6 +419,16 @@ Private Sub GenerateB4XManagerDelete(T As Table, UniqueImmutableColumnName As St
 	Delete.AddCodeLine($"dbCore.DeleteObject("${T.Name}", "${UniqueImmutableColumnName}", ${T.Name}Object.${UniqueImmutableColumnName})"$)
 	
 	Return Delete
+End Sub
+
+Private Sub GenerateB4XManagerGetWhere(TableName As String) As B4XSub
+	Dim GetWhere As B4XSub
+	GetWhere.Initialize("Public", "GetListWhere")
+	GetWhere.ReturnType = "List"
+	GetWhere.AddParameter("WhereMap As Map")
+	GetWhere.AddCodeLine($"Return dbCore.GetObjectsWhere("${TableName}", WhereMap)"$)
+	
+	Return GetWhere
 End Sub
 #End Region
 

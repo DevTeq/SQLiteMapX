@@ -70,3 +70,21 @@ Public Sub GetManyToManyList(LeftTableName As String, LeftTableID As String, Rel
 	Loop
 	Return RelationList
 End Sub
+
+Public Sub GetObjectsWhere(TableName As String, WhereMap As Map) As List
+	Dim result As ResultSet
+	Dim query As String = "SELECT * FROM " & TableName & " "
+	For Each columnName As String In WhereMap.Keys
+		query = query & columnName & " = ? AND "	
+	Next
+	query = query.SubString2(0, query.Length - 4)
+	result = db.ExecQuery2(query, ConvertMapValuesToList(WhereMap))
+	
+	Dim objectList As List
+	objectList = ParseResultToObjects(result, TableName)
+	
+	If objectList.Size > 0 Then
+		Return objectList
+	End If
+	Return Null
+End Sub
