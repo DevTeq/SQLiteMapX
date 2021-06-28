@@ -37,9 +37,18 @@ Private Sub ConvertMapValuesToList(m As Map) As List
 	Dim lst As List
 	lst.Initialize
 	For Each Value As Object In m.Values
-		lst.Add(Value)
+		If IsArray(Value) Then
+			lst.AddAll(Value)
+		Else
+			lst.Add(Value)
+		End If
 	Next
 	Return lst
+End Sub
+
+Private Sub IsArray(Var As Object) As Boolean
+    Dim VarType As String = GetType(var)
+    Return VarType.StartsWith("[")
 End Sub
 
 Public Sub DeleteObject(Tablename As String, ColumnName As String, Value As Object)
@@ -75,7 +84,10 @@ Public Sub GetObjectsWhere(TableName As String, WhereMap As Map) As List
 	Dim result As ResultSet
 	Dim query As String = "SELECT * FROM " & TableName & " "
 	For Each columnName As String In WhereMap.Keys
-		query = query & columnName & " = ? AND "	
+		Dim values() As String = WhereMap.Get(columnName)
+		For i = 0 To Values.Length-1
+			query = query & columnName & " = ? AND "
+		Next	
 	Next
 	query = query.SubString2(0, query.Length - 4)
 	result = db.ExecQuery2(query, ConvertMapValuesToList(WhereMap))
