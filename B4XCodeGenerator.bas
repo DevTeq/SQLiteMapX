@@ -162,7 +162,22 @@ Private Sub GenerateB4XModelFromTable(T As Table) As B4XFile
 	
 	Dim Save As B4XSub
 	Save.Initialize("Public", "Save")
-	Save.AddCodeLine($"dbCore.UpdateObject("${T.Name}", "${UniqueImmutableColumnName}", m${UniqueImmutableColumnName}, Array As String(${AllColumns}), Array As Object(${AllColumnValues}))"$)
+	Save.AddCodeLine(GenerateVariable("ValueList", "Dim", "List"))
+	Save.AddCodeLine("ValueList.Initialize")
+	For Each c As Column In T.Columns
+		If c.IsMandatory Then
+			Save.AddCodeLine("ValueList.Add(m" & c.Name & ")")
+		Else
+			Dim ifIsNullTrueCode As B4XCodeBlock
+			ifIsNullTrueCode.Initialize("ValueList.Add(Null)")
+			Dim ifIsNullFalseCode As B4XCodeBlock
+			ifIsNullFalseCode.Initialize("ValueList.Add(m" & c.Name &")")
+			Dim ifIsNull As B4XIfStatement
+			ifIsNull.Initialize(Array As String("mIs" & c.Name & "Null", "mIs" & c.Name & "Null"), Array As String("=", "="), Array As String("True", "False"), Array As B4XCodeBlock(ifIsNullTrueCode, ifIsNullFalseCode))
+			Save.AddCodeBlock(ifIsNull.ToCodeBlock)
+		End If
+	Next
+	Save.AddCodeLine($"dbCore.UpdateObject("${T.Name}", "${UniqueImmutableColumnName}", m${UniqueImmutableColumnName}, Array As String(${AllColumns}), ValueList)"$)
 	TableModel.AddB4XSub(Save)
 	
 	Dim UpdateByMap As B4XSub
