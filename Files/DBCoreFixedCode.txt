@@ -38,7 +38,8 @@ Private Sub ConvertMapValuesToList(m As Map) As List
 	lst.Initialize
 	For Each Value As Object In m.Values
 		If IsArray(Value) Then
-			lst.AddAll(Value)
+			Dim arr() As String = Value
+			lst.AddAll(arr)
 		Else
 			lst.Add(Value)
 		End If
@@ -47,8 +48,12 @@ Private Sub ConvertMapValuesToList(m As Map) As List
 End Sub
 
 Private Sub IsArray(Var As Object) As Boolean
-    Dim VarType As String = GetType(var)
-    Return VarType.StartsWith("[")
+    	If Var <> Null Then
+    		Dim VarType As String = GetType(Var)
+    		Return VarType.StartsWith("[")
+	Else
+		Return False
+	End If
 End Sub
 
 Public Sub DeleteObject(Tablename As String, ColumnName As String, Value As Object)
@@ -82,15 +87,20 @@ End Sub
 
 Public Sub GetObjectsWhere(TableName As String, WhereMap As Map) As List
 	Dim result As ResultSet
-	Dim query As String = "SELECT * FROM " & TableName & " "
+	Dim query As String = "SELECT * FROM " & TableName & " WHERE "
 	For Each columnName As String In WhereMap.Keys
 		Dim values() As String = WhereMap.Get(columnName)
-		For i = 0 To Values.Length-1
+		For i = 0 To values.Length-1
 			query = query & columnName & " = ? AND "
 		Next	
 	Next
-	query = query.SubString2(0, query.Length - 4)
-	result = db.ExecQuery2(query, ConvertMapValuesToList(WhereMap))
+	If WhereMap.Size > 0 Then 
+		query = query.SubString2(0, query.Length - 5) 'Remove the space + AND + space
+	Else
+		query = query.SubString2(0, query.Length - 6) 'Remove the space + WHERE + space
+	End If
+	Dim SQLQueryParamList As List = ConvertMapValuesToList(WhereMap)
+	result = db.ExecQuery2(query, SQLQueryParamList)'SQLQueryParamList)
 	
 	Dim objectList As List
 	objectList = ParseResultToObjects(result, TableName)
